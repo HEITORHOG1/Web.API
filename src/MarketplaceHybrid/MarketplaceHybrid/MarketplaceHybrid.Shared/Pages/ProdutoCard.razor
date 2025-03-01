@@ -1,0 +1,38 @@
+﻿@using MarketplaceHybrid.Shared.Configurations
+@using MarketplaceHybrid.Shared.Models
+@using Microsoft.AspNetCore.Components
+
+<MudCard Class="mb-4" Style="cursor: pointer;" @onclick="NavigateToDetails">
+    <!-- Exibe a imagem do produto -->
+    <MudCardMedia Image="@GetImageUrl(Produto.Imagem)" Alt="@Produto.Nome" />
+
+    <MudCardContent>
+        <!-- Nome, descrição e preço do produto -->
+        <MudText Typo="Typo.h6">@Produto.Nome</MudText>
+        <MudText Typo="Typo.body2" Class="mt-2">@Produto.Descricao</MudText>
+        <MudText Typo="Typo.body1" Class="mt-2"><strong>R$ @Produto.Preco.ToString("N2")</strong></MudText>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter]
+    public Cardapio Produto { get; set; }
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; }
+
+    private void NavigateToDetails()
+    {
+        NavigationManager.NavigateTo($"/produtos/{51}/{Produto.Id}");
+    }
+
+    private string GetImageUrl(string? relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath))
+        {
+            return "https://via.placeholder.com/150";
+        }
+
+        return $"{ApiConstants.BaseUrlImagem}/{relativePath}";
+    }
+}

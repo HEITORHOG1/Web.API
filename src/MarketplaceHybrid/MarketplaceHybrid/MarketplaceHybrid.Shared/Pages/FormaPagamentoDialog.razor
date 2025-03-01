@@ -1,0 +1,67 @@
+﻿@using MudBlazor
+@using MarketplaceHybrid.Shared.Models
+
+<MudDialog OnKeyDown="OnKeyDownAsync">
+    <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-4">Selecione a forma de pagamento</MudText>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudRadioGroup @bind-Value="_selectedFormaPagamento" T="FormaPagamento" Class="mt-2">
+                    <MudGrid>
+                        <MudItem xs="12">
+                            <MudRadio T="FormaPagamento" Option="FormaPagamento.Pix" Label="Pix" Class="my-1" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudRadio T="FormaPagamento" Option="FormaPagamento.CartaoCredito" Label="Cartão de Crédito" Class="my-1" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudRadio T="FormaPagamento" Option="FormaPagamento.CartaoDebito" Label="Cartão de Débito" Class="my-1" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudRadio T="FormaPagamento" Option="FormaPagamento.Dinheiro" Label="Dinheiro" />
+                        </MudItem>
+                    </MudGrid>
+                </MudRadioGroup>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="Submit" Disabled="_selectedFormaPagamento == 0">CONFIRMAR</MudButton>
+        <MudButton Color="Color.Default" OnClick="Cancel">CANCELAR</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Inject]
+    private IDialogService DialogService { get; set; }
+
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public FormaPagamento SelectedFormaPagamento { get; set; }
+
+    private FormaPagamento _selectedFormaPagamento { get; set; }
+    protected override void OnInitialized()
+    {
+        _selectedFormaPagamento = SelectedFormaPagamento;
+    }
+    private void Cancel() => MudDialog.Cancel();
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_selectedFormaPagamento));
+    private async Task OnKeyDownAsync(KeyboardEventArgs args)
+    {
+        switch (args.Key)
+        {
+            case "Enter":
+            case "NumpadEnter":
+                if (_selectedFormaPagamento == 0)
+                {
+                    await DialogService.ShowMessageBox(
+                          "Atenção",
+                          @"Você deve selecionar uma forma de pagamento para prosseguir",
+                             yesText: "Ok",
+                          options: new DialogOptions() { CloseOnEscapeKey = true });
+                    return;
+                }
+                Submit();
+                break;
+        }
+    }
+}

@@ -1,0 +1,246 @@
+﻿@page "/cadastrar-endereco"
+@using MarketplaceHybrid.Shared.Models
+@using MarketplaceHybrid.Shared.Services.Interfaces
+@using MudBlazor
+@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Json
+@using System.Text.Json
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject IEstabelecimentoService EstabelecimentoService
+@inject IAuthService AuthService
+@inject HttpClient Http
+@inject MarketplaceHybrid.Shared.Services.Interfaces.IEnderecoClienteService EnderecoClienteService
+
+@if (!isLoggedIn)
+{
+    <MudText>Redirecionando para login...</MudText>
+}
+else
+{
+
+    <h3>Cadastrar Endereço</h3>
+    <MudContainer MaxWidth="MaxWidth.Small">
+        <MudPaper Class="pa-4 mt-4" Elevation="2">
+            <EditForm Model="@enderecoModel">
+                <DataAnnotationsValidator />
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="enderecoModel.CPF" Label="CPF" Variant="MudBlazor.Variant.Outlined" />
+                        <ValidationMessage For="@(() => enderecoModel.CPF)" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="enderecoModel.CEP" Label="CEP" Variant="MudBlazor.Variant.Outlined" OnBlur="BuscarEndereco" />
+                        <ValidationMessage For="@(() => enderecoModel.CEP)" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="enderecoModel.Logradouro" Label="Logradouro" Variant="MudBlazor.Variant.Outlined" />
+                        <ValidationMessage For="@(() => enderecoModel.Logradouro)" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="enderecoModel.Numero" Label="Número" Variant="MudBlazor.Variant.Outlined" />
+                        <ValidationMessage For="@(() => enderecoModel.Numero)" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="enderecoModel.Complemento" Label="Complemento" Variant="MudBlazor.Variant.Outlined" />
+                        <ValidationMessage For="@(() => enderecoModel.Complemento)" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="enderecoModel.Bairro" Label="Bairro" Variant="MudBlazor.Variant.Outlined" />
+                        <ValidationMessage For="@(() => enderecoModel.Bairro)" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="enderecoModel.Cidade" Label="Cidade" Variant="MudBlazor.Variant.Outlined" />
+                        <ValidationMessage For="@(() => enderecoModel.Cidade)" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="enderecoModel.Estado" Label="Estado" Variant="MudBlazor.Variant.Outlined" />
+                        <ValidationMessage For="@(() => enderecoModel.Estado)" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudCheckBox T="bool" @bind-Value="enderecoModel.Principal" Label="Endereço Principal" Color="Color.Primary" />
+                    </MudItem>
+
+
+                    <MudItem xs="12" Class="mt-4">
+                        <MudButton OnClick="HandleValidSubmit" Variant="MudBlazor.Variant.Filled" Color="Color.Primary" Class="w-100" Disabled="isLoading">
+                            @if (isLoading)
+                            {
+                                <MudProgressCircular Indeterminate Size="Size.Small" Color="Color.Default" />
+                            }
+                            else
+                            {
+                                <span>Salvar Endereço</span>
+                            }
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </EditForm>
+        </MudPaper>
+    </MudContainer>
+}
+@code {
+    private EnderecoModel enderecoModel = new EnderecoModel();
+    private bool isLoading = false;
+    private bool isLoggedIn = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoggedIn = await AuthService.IsLoggedInAsync();
+        if (!isLoggedIn)
+        {
+            NavigationManager.NavigateTo($"/login?redirectUri=/cadastrar-endereco");
+            return;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        isLoading = true;
+        try
+        {
+            // Obter token do AuthService
+            var tokenJson = await AuthService.GetTokenAsync();
+            if (string.IsNullOrEmpty(tokenJson))
+            {
+                Snackbar.Add("Erro ao recuperar o token de autenticação. Faça login novamente.", Severity.Warning);
+                return;
+            }
+
+            var token = ExtractTokenFromJson(tokenJson);
+            if (string.IsNullOrEmpty(token))
+            {
+                Snackbar.Add("Token de autenticação inválido. Faça login novamente.", Severity.Warning);
+                return;
+            }
+            var enderecoDto = new EnderecoClienteDto
+                {
+                    Logradouro = enderecoModel.Logradouro,
+                    Numero = enderecoModel.Numero,
+                    Complemento = enderecoModel.Complemento,
+                    Bairro = enderecoModel.Bairro,
+                    Cidade = enderecoModel.Cidade,
+                    Estado = enderecoModel.Estado,
+                    CEP = FormatCep(enderecoModel.CEP),
+                    Principal = enderecoModel.Principal
+                };
+
+            var result = await EnderecoClienteService.AddEnderecoAsync(enderecoDto, token);
+
+            if (result != null && result.Success)
+            {
+                Snackbar.Add("Endereço adicionado com sucesso", Severity.Success);
+                NavigationManager.NavigateTo("/endereco-frete");
+            }
+            else if (result != null)
+            {
+                Snackbar.Add($"Erro ao adicionar endereço: {result.Message}", Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add($"Erro ao adicionar endereço", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao adicionar endereço: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+    private async Task BuscarEndereco()
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(enderecoModel.CEP))
+            {
+                isLoading = true;
+
+                // Chamar a API para buscar o endereço
+                var endereco = await EstabelecimentoService.BuscarEnderecoPorCepAsync(enderecoModel.CEP.Replace("-", ""));
+                if (endereco != null)
+                {
+                    enderecoModel.Logradouro = endereco.Logradouro;
+                    enderecoModel.Bairro = endereco.Bairro;
+                    enderecoModel.Cidade = endereco.Localidade;
+                    enderecoModel.Estado = endereco.UF;
+                }
+                else
+                {
+                    Snackbar.Add("Endereço não encontrado para o CEP informado.", Severity.Warning);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao buscar endereço: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+    private string ExtractTokenFromJson(string tokenJson)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(tokenJson);
+            var root = document.RootElement;
+            if (root.TryGetProperty("token", out var tokenElement))
+            {
+                return tokenElement.GetString()?.Trim() ?? string.Empty;
+            }
+
+            Console.WriteLine("Campo 'token' não encontrado no JSON.");
+            return string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao extrair o token: {ex.Message}");
+            return string.Empty;
+        }
+    }
+    private string FormatCep(string cep)
+    {
+        if (string.IsNullOrEmpty(cep))
+        {
+            return cep;
+        }
+
+        string cleanedCep = new string(cep.Where(char.IsDigit).ToArray());
+
+        if (cleanedCep.Length == 8)
+        {
+            return $"{cleanedCep.Substring(0, 5)}-{cleanedCep.Substring(5, 3)}";
+        }
+
+        return cleanedCep;
+    }
+    public class EnderecoModel
+    {
+        [Required(ErrorMessage = "CPF é obrigatório")]
+        [RegularExpression(@"^\d{3}\.\d{3}\.\d{3}-\d{2}$", ErrorMessage = "CPF inválido")]
+        public string? CPF { get; set; }
+        [Required(ErrorMessage = "CEP é obrigatório")]
+        [RegularExpression(@"^\d{5}-\d{3}$", ErrorMessage = "CEP inválido")]
+        public string? CEP { get; set; }
+        [Required(ErrorMessage = "Logradouro é obrigatório")]
+        public string? Logradouro { get; set; }
+        [Required(ErrorMessage = "Numero é obrigatório")]
+        public string? Numero { get; set; }
+        public string? Complemento { get; set; }
+        [Required(ErrorMessage = "Bairro é obrigatório")]
+        public string? Bairro { get; set; }
+        [Required(ErrorMessage = "Cidade é obrigatória")]
+        public string? Cidade { get; set; }
+        [Required(ErrorMessage = "Estado é obrigatório")]
+        public string? Estado { get; set; }
+        public bool Principal { get; set; }
+    }
+}

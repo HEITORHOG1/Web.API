@@ -1,0 +1,45 @@
+﻿@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-4">Revise o seu pedido</MudText>
+        <div style="display: flex; align-items:center;">
+            <MudIcon Icon="@Icons.Material.Filled.DeliveryDining" Color="Color.Default" Class="mr-2" />
+            <div>
+                <MudText Typo="Typo.body1">Entrega hoje</MudText>
+                <MudText Typo="Typo.body2">Hoje, 40 - 50 min</MudText>
+            </div>
+        </div>
+        <div style="display: flex; align-items:center; margin-top:8px;">
+            <MudIcon Icon="@Icons.Material.Filled.LocationOn" Color="Color.Default" Class="mr-2" />
+            <div>
+                <MudText Typo="Typo.body1">Av. Gen. Márc...galhães, 1235</MudText>
+                <MudText Typo="Typo.body2">Apto 401 Bloco D</MudText>
+            </div>
+        </div>
+        <div style="display: flex; align-items:center; margin-top:8px;">
+            <MudIcon Icon="@Icons.Material.Filled.ConfirmationNumber" Color="Color.Default" Class="mr-2" />
+            <MudText Typo="Typo.body1">Nenhum cupom aplicado</MudText>
+        </div>
+        <div style="display: flex; align-items:center; margin-top:8px;">
+            <MudIcon Icon="@Icons.Custom.Brands.X" Color="Color.Default" Size="Size.Large" Class="mr-2" />
+            <div>
+                <MudText Typo="Typo.body1">Pagamento pelo app</MudText>
+                <MudText Typo="Typo.body2">Visa •••• 6138 R$ 117,80</MudText>
+            </div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Error" OnClick="Submit" Style="width:100%">Fazer pedido</MudButton>
+        <MudButton Color="Color.Default" OnClick="Cancel" Style="width:100%">Alterar pedido</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    void Cancel() => MudDialog.Cancel();
+
+    void Submit() => MudDialog.Close(DialogResult.Ok(true));
+}

@@ -1,0 +1,70 @@
+﻿@page "/sobre/{id:int}"
+@using MarketplaceHybrid.Shared.Configurations
+@using MarketplaceHybrid.Shared.Models
+@using MarketplaceHybrid.Shared.Services.Interfaces
+@inject IEstabelecimentoService EstabelecimentoService
+@inject ICarrinhoService CarrinhoService
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Sobre a Loja</MudText>
+    @if (response != null)
+    {
+        <MudCard Class="mb-4">
+            <MudCardMedia Image="@GetImageUrl(response.Estabelecimento.UrlImagem)" Alt="@response.Estabelecimento.NomeFantasia" />
+            <MudCardContent>
+                <MudText Typo="Typo.h5">@response.Estabelecimento.NomeFantasia</MudText>
+                <MudText Typo="Typo.body2">@response.Estabelecimento.Descricao</MudText>
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.subtitle1"><MudIcon Icon="@Icons.Material.Filled.LocationOn" /> Endereço:</MudText>
+                <MudText Typo="Typo.body2">@response.Estabelecimento.Endereco, @response.Estabelecimento.Numero - @response.Estabelecimento.Cep</MudText>
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.subtitle1"><MudIcon Icon="@Icons.Material.Filled.Schedule" /> Horário de Funcionamento:</MudText>
+                @if (response.HorarioFuncionamento != null && response.HorarioFuncionamento.Any())
+                {
+                    @foreach (var horario in response.HorarioFuncionamento)
+                    {
+                        <MudText Typo="Typo.body2">@horario.DiaSemana: @horario.HoraAbertura - @horario.HoraFechamento</MudText>
+                    }
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2">Horário de funcionamento não disponível</MudText>
+                }
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.subtitle1"><MudIcon Icon="@Icons.Material.Filled.Payment" /> Formas de Pagamento:</MudText>
+                <MudText Typo="Typo.body2">Cartão de Débito, Crédito, Dinheiro</MudText>
+            </MudCardContent>
+        </MudCard>
+    }
+    else
+    {
+        <MudText Typo="Typo.body1" Align="Align.Center">Carregando informações...</MudText>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private EstabelecimentoResponse? response;
+
+    protected override async Task OnInitializedAsync()
+    {
+        response = await EstabelecimentoService.GetEstabelecimentoByIdAsync(Id);
+    }
+
+    private string GetImageUrl(string? relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath))
+        {
+            return "https://via.placeholder.com/150";
+        }
+        return $"{ApiConstants.BaseUrlImagem}/{relativePath}";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            StateHasChanged(); // Atualizar a interface
+        }
+    }
+}

@@ -1,0 +1,48 @@
+﻿@page "/login"
+@using MarketplaceHybrid.Shared.Services.Interfaces
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h5" Class="mb-4">Login</MudText>
+
+    <MudTextField Label="Usuário" @bind-Value="Username" FullWidth="true" />
+    <MudTextField Label="Senha" @bind-Value="Password" FullWidth="true" InputType="InputType.Password" />
+    <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" OnClick="HandleLogin" FullWidth="true" Class="mt-4">
+        Entrar
+    </MudButton>
+    <MudButton Variant="MudBlazor.Variant.Text" Color="Color.Primary" OnClick="IrParaCadastro" FullWidth="true" Class="mt-2">
+        Não tem uma conta? Cadastre-se
+    </MudButton>
+</MudContainer>
+
+@code {
+    private string Username = "";
+    private string Password = "";
+    [SupplyParameterFromQuery]
+    public string? redirectUri { get; set; }
+
+    private async Task HandleLogin()
+    {
+        if (await AuthService.LoginAsync(Username, Password))
+        {
+            if (!string.IsNullOrEmpty(redirectUri))
+            {
+                NavigationManager.NavigateTo(redirectUri);
+            }
+            else
+            {
+                NavigationManager.NavigateTo("/");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Falha no login");
+        }
+    }
+
+    private void IrParaCadastro()
+    {
+        NavigationManager.NavigateTo("/cadastro");
+    }
+}

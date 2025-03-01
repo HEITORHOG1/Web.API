@@ -1,0 +1,104 @@
+﻿@using MarketplaceHybrid.Shared.Services.Interfaces
+@inject ICarrinhoService CarrinhoService
+@inject ISnackbar Snackbar
+@inject IAuthService AuthService
+<MudCard Elevation="3" Class="mud-width-full mud-fixed-bottom">
+    <MudCardContent>
+        <MudGrid AlignItems="Center" JustifyContent="SpaceBetween">
+            <!-- Ícone do carrinho e quantidade de itens -->
+            <MudItem xs="4" Align="Start">
+                <MudBadge Content="@TotalItensTexto" Color="Color.Error" Class="mr-2">
+                    <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Medium" OnClick="IrParaCarrinho" />
+                </MudBadge>
+            </MudItem>
+
+            <!-- Texto "Meu Pedido" -->
+            <MudItem xs="4" Align="Center">
+                <MudText Typo="Typo.h6" Align="Align.Center">Meu Pedido</MudText>
+            </MudItem>
+
+            <!-- Valor total -->
+            <MudItem xs="4" Align="End">
+                <MudGrid AlignItems="Center" JustifyContent="SpaceBetween">
+                    <MudItem>
+                        <MudText Typo="Typo.h5" Align="Align.Right" Class="mud-text-primary">
+                            R$ @TotalPedido.ToString("N2")
+                        </MudText>
+                    </MudItem>
+                    <MudItem>
+                        <!-- Botão Finalizar Pedido -->
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" Disabled="@(TotalItens <= 0)" OnClick="NextTelaEndereco">
+                            Continuar
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private decimal TotalPedido;
+    private int TotalItens;
+    [Inject] private NavigationManager NavigationManager { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Atualiza o resumo do pedido ao carregar o componente
+        await AtualizarResumoPedido();
+        CarrinhoService.CarrinhoAtualizado += OnCarrinhoAtualizado;
+    }
+
+    private async Task OnCarrinhoAtualizado()
+    {
+        await AtualizarResumoPedido();
+        StateHasChanged();
+    }
+
+    private async Task AtualizarResumoPedido()
+    {
+        var carrinho = await CarrinhoService.ObterCarrinhoAsync();
+        TotalItens = carrinho.Sum(x => x.Quantidade);
+        TotalPedido = carrinho.Sum(x => x.Total);
+    }
+
+    private string TotalItensTexto => TotalItens == 1 ? $"{TotalItens} item" : $"{TotalItens} itens";
+
+    public void Dispose()
+    {
+        CarrinhoService.CarrinhoAtualizado -= OnCarrinhoAtualizado;
+    }
+
+    private void IrParaCarrinho()
+    {
+        NavigationManager.NavigateTo("/carrinho");
+    }
+
+    private async Task NextTelaEndereco()
+    {
+        if (TotalItens > 0)
+        {
+            NavigationManager.NavigateTo("/endereco-frete");
+        }
+        else
+        {
+            Snackbar.Add("Seu carrinho está vazio! Adicione itens antes de ir para a proxima tela.", Severity.Warning);
+        }
+    }
+    private async Task FinalizarPedido()
+    {
+        if (TotalItens > 0)
+        {
+            if (!await AuthService.IsLoggedInAsync())
+            {
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+            NavigationManager.NavigateTo("/finalizar-pedido");
+        }
+        else
+        {
+            Snackbar.Add("Seu carrinho está vazio! Adicione itens antes de finalizar o pedido.", Severity.Warning);
+        }
+    }
+}

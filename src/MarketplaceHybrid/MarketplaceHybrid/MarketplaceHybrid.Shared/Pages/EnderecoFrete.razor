@@ -1,0 +1,186 @@
+﻿@page "/endereco-frete"
+@using MudBlazor
+@using System.Globalization
+@using MarketplaceHybrid.Shared.Services.Interfaces
+@using MarketplaceHybrid.Shared.Models
+@using System.Text.Json
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject IEnderecoClienteService EnderecoClienteService
+@inject ISnackbar Snackbar
+
+<h3>EnderecoFrete</h3>
+
+<MudContainer MaxWidth="MaxWidth.Small">
+    @* Top Bar/Header *@
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Default" />
+        <MudText Typo="Typo.h6" Style="margin-left:16px;">SACOLA</MudText>
+        <MudSpacer />
+        <MudButton Color="Color.Default">Limpar</MudButton>
+    </MudAppBar>
+    <MudPaper Class="mt-4 pa-4" Elevation="2">
+        <MudText Typo="Typo.h6" Class="mb-2">Entregar no endereço</MudText>
+        @if (enderecos != null && enderecos.Any())
+        {
+            @foreach (var endereco in enderecos)
+            {
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px;
+                               @(endereco.Principal ? "color: red;" : "")">
+                    <div>
+                        <div style="display:flex; align-items:center;">
+                            <MudIcon Icon="@Icons.Material.Filled.LocationOn" Color="@(endereco.Principal ? Color.Error : Color.Default)" Class="mr-2" />
+                            <MudText Typo="Typo.body1" Color="@(endereco.Principal ? Color.Error : Color.Default)">@endereco.Logradouro</MudText>
+                            @if (endereco.Principal)
+                            {
+                                <MudText Typo="Typo.body2" Inline="true" Color="Color.Error" Style="margin-left:8px">Endereço Principal</MudText>
+                            }
+                        </div>
+                        <MudText Typo="Typo.body2" Class="ml-6" Color="@(endereco.Principal ? Color.Error : Color.Default)">@($"{endereco.Bairro} - {endereco.Complemento}")</MudText>
+                    </div>
+                    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Default" @onclick="() => SetPrincipalAndNavigate(endereco.Id)" />
+                </div>
+            }
+
+        }
+        else
+        {
+            <MudText Typo="Typo.body1" Class="mb-2">Nenhum endereço de entrega cadastrado.</MudText>
+            <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" @onclick="NavigateToCadastrarEndereco">Cadastrar Endereço</MudButton>
+        }
+    </MudPaper>
+
+    @* Delivery Options Section *@
+    @if (enderecos != null && enderecos.Any())
+    {
+        <MudPaper Class="mt-4 pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-2">Opções de entrega <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" Color="Color.Default" /></MudText>
+            <MudPaper Class="pa-2" Style="border:1px solid gray;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <div>
+                        <MudText Typo="Typo.body1">Padrão</MudText>
+                        <MudText Typo="Typo.body2">Hoje, 40 - 50min</MudText>
+                    </div>
+                    <div style="display:flex; align-items:center;">
+                        <MudText Typo="Typo.body1" Color="Color.Success">Grátis</MudText>
+                        <MudRadio T="bool" Color="Color.Error" Checked="true" Size="Size.Small" />
+                    </div>
+                </div>
+            </MudPaper>
+        </MudPaper>
+    }
+    <MudPaper Class="mt-4 pa-4" Elevation="2" Style="position:fixed; bottom:0; width:100%; left:0; display: flex; justify-content: space-between; align-items: center;">
+        <MudText Typo="Typo.body1">Total com entrega grátis <br /> R$ @Total.ToString("F2", CultureInfo.InvariantCulture) / 1 item</MudText>
+        <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Error" OnClick="FinalizarPedido">Continuar</MudButton>
+    </MudPaper>
+</MudContainer>
+@code {
+    private List<EnderecoClienteDto>? enderecos;
+    private decimal Total { get; set; } = 123.85m;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!await AuthService.IsLoggedInAsync())
+        {
+            NavigationManager.NavigateTo($"/login?redirectUri=/endereco-frete");
+            return;
+        }
+        await LoadAddresses();
+    }
+    private async Task LoadAddresses()
+    {
+        var tokenJson = await AuthService.GetTokenAsync();
+        if (string.IsNullOrEmpty(tokenJson))
+        {
+            Snackbar.Add("Erro ao recuperar o token de autenticação. Faça login novamente.", Severity.Warning);
+            return;
+        }
+        var token = ExtractTokenFromJson(tokenJson);
+        if (string.IsNullOrEmpty(token))
+        {
+            Snackbar.Add("Token de autenticação inválido. Faça login novamente.", Severity.Warning);
+            return;
+        }
+
+        var response = await EnderecoClienteService.GetAllByUsuarioIdAsync(token);
+
+        if (response != null)
+        {
+            enderecos = response.ToList();
+        }
+        else
+        {
+            Snackbar.Add("Erro ao buscar endereços", Severity.Error);
+        }
+    }
+    private async Task SetPrincipalAndNavigate(int enderecoId)
+    {
+        var tokenJson = await AuthService.GetTokenAsync();
+        if (string.IsNullOrEmpty(tokenJson))
+        {
+            Snackbar.Add("Erro ao recuperar o token de autenticação. Faça login novamente.", Severity.Warning);
+            return;
+        }
+        var token = ExtractTokenFromJson(tokenJson);
+        if (string.IsNullOrEmpty(token))
+        {
+            Snackbar.Add("Token de autenticação inválido. Faça login novamente.", Severity.Warning);
+            return;
+        }
+        if (enderecos != null && enderecos.Any())
+        {
+            foreach (var endereco in enderecos)
+            {
+                var enderecoDto = new EnderecoClienteDto
+                    {
+                        Id = endereco.Id,
+                        Logradouro = endereco.Logradouro,
+                        Numero = endereco.Numero,
+                        Complemento = endereco.Complemento,
+                        Bairro = endereco.Bairro,
+                        Cidade = endereco.Cidade,
+                        Estado = endereco.Estado,
+                        CEP = endereco.CEP,
+                        Principal = endereco.Id == enderecoId
+                    };
+                await EnderecoClienteService.UpdateEnderecoAsync(enderecoDto, token);
+
+            }
+        }
+        await LoadAddresses();
+        
+    }
+    private string ExtractTokenFromJson(string tokenJson)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(tokenJson);
+            var root = document.RootElement;
+            if (root.TryGetProperty("token", out var tokenElement))
+            {
+                return tokenElement.GetString()?.Trim() ?? string.Empty;
+            }
+
+            Console.WriteLine("Campo 'token' não encontrado no JSON.");
+            return string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao extrair o token: {ex.Message}");
+            return string.Empty;
+        }
+    }
+    private void NavigateToCadastrarEndereco()
+    {
+        NavigationManager.NavigateTo("/cadastrar-endereco");
+    }
+    private async Task FinalizarPedido()
+    {
+        if (!await AuthService.IsLoggedInAsync())
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+        NavigationManager.NavigateTo("/finalizar-pedido");
+    }
+}

@@ -1,0 +1,126 @@
+﻿@page "/cadastro"
+@using MarketplaceHybrid.Shared.Models
+@using MarketplaceHybrid.Shared.Services.Interfaces
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h5" Class="mb-4">Cadastro</MudText>
+
+    <!-- Campo de nome de usuário com verificação -->
+    <MudTextField Label="Como Gostaria de ser chamado"
+                  @bind-Value="Username"
+                  FullWidth="true"
+                  Variant="Variant.Outlined"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@UsernameAdornmentIcon"
+                  AdornmentColor="@UsernameAdornmentColor"
+                  Immediate="true" />
+
+    <MudText Typo="Typo.caption" Class="mt-1" Color="Color.Error" Hidden="@string.IsNullOrEmpty(UsernameErrorMessage)">
+        @UsernameErrorMessage
+    </MudText>
+
+    <MudTextField Label="Email" @bind-Value="Model.Email" FullWidth="true" />
+    <MudTextField Label="Senha" @bind-Value="Model.Password" FullWidth="true" InputType="InputType.Password" />
+    <MudTextField Label="Telefone" @bind-Value="Model.Telefone" FullWidth="true" />
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleCadastro" FullWidth="true" Class="mt-4" Disabled="@IsCadastroDisabled">
+        Cadastrar
+    </MudButton>
+</MudContainer>
+
+@code {
+    private UserRegistrationModel Model = new UserRegistrationModel();
+
+    // Estados de validação
+    private string UsernameAdornmentIcon = Icons.Material.Filled.HourglassEmpty; // Ícone inicial
+    private Color UsernameAdornmentColor = Color.Default; // Cor inicial
+    private string UsernameErrorMessage = string.Empty; // Mensagem de erro
+    private bool IsUsernameValid = false; // Controle de validade
+
+    // Propriedade calculada para o botão de cadastro
+    private bool IsCadastroDisabled =>
+     string.IsNullOrWhiteSpace(Username) || // Verifica se o nome de usuário está vazio
+     string.IsNullOrWhiteSpace(Model.Email) || // Verifica se o email está vazio
+     string.IsNullOrWhiteSpace(Model.Password) || // Verifica se a senha está vazia
+     string.IsNullOrWhiteSpace(Model.Telefone) || // Verifica se o telefone está vazio
+     !IsUsernameValid; // Verifica se o nome de usuário é válido
+
+    private string _username;
+    private string Username
+    {
+        get => _username;
+        set
+        {
+            _username = value;
+            Model.Username = value;
+            ValidateUsername(value).ConfigureAwait(false); // Chama a validação em segundo plano
+        }
+    }
+
+    private async Task ValidateUsername(string value)
+    {
+        UsernameAdornmentIcon = Icons.Material.Filled.HourglassEmpty;
+        UsernameAdornmentColor = Color.Default;
+        UsernameErrorMessage = string.Empty;
+        IsUsernameValid = false;
+
+        await Task.Delay(300); // Simula um pequeno atraso para evitar chamadas excessivas
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            UsernameAdornmentIcon = Icons.Material.Filled.Error;
+            UsernameAdornmentColor = Color.Error;
+            UsernameErrorMessage = "O nome de usuário não pode estar vazio.";
+            return;
+        }
+
+        var usernameExists = await AuthService.CheckUsernameExistsAsync(value);
+
+        Console.WriteLine($"Validação de username: {value}, Existe: {usernameExists}");
+
+        if (usernameExists)
+        {
+            UsernameAdornmentIcon = Icons.Material.Filled.Close;
+            UsernameAdornmentColor = Color.Error;
+            UsernameErrorMessage = "O nome de usuário já está em uso.";
+        }
+        else
+        {
+            UsernameAdornmentIcon = Icons.Material.Filled.Check;
+            UsernameAdornmentColor = Color.Success;
+            IsUsernameValid = true;
+        }
+    }
+
+
+    private async Task HandleCadastro()
+    {
+        if (!IsUsernameValid)
+        {
+            Snackbar.Add("Nome de usuário inválido. Corrija antes de continuar.", Severity.Warning);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Model.Email) ||
+            string.IsNullOrWhiteSpace(Model.Password) ||
+            string.IsNullOrWhiteSpace(Model.Telefone))
+        {
+            Snackbar.Add("Preencha todos os campos obrigatórios.", Severity.Warning);
+            return;
+        }
+
+        var success = await AuthService.RegisterAsync(Model);
+        if (success)
+        {
+            Snackbar.Add("Cadastro realizado com sucesso!", Severity.Success);
+            NavigationManager.NavigateTo("/login");
+        }
+        else
+        {
+            Snackbar.Add("Falha no cadastro. Tente novamente.", Severity.Error);
+        }
+    }
+
+}

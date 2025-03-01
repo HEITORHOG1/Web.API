@@ -1,0 +1,37 @@
+﻿@using MarketplaceHybrid.Shared.Configurations
+@using MarketplaceHybrid.Shared.Models
+
+<MudCard Class="mb-4">
+    @if (Estabelecimento != null)
+    {
+        <!-- Exibe a imagem do estabelecimento usando MudAvatar -->
+        <MudAvatar Class="mx-auto my-2" Size="Size.Large">
+            <MudImage Src="@GetImageUrl(Estabelecimento.UrlImagem)" Alt="@Estabelecimento.NomeFantasia" Class="rounded" />
+        </MudAvatar>
+
+        <MudCardContent>
+            <!-- Nome e descrição do estabelecimento -->
+            <MudText Typo="Typo.h6" Align="Align.Center">@Estabelecimento.NomeFantasia</MudText>
+            <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-2">@Estabelecimento.Descricao</MudText>
+        </MudCardContent>
+    }
+    else
+    {
+        <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-2">Estabelecimento não disponível.</MudText>
+    }
+</MudCard>
+
+@code {
+    [Parameter]
+    public Estabelecimento Estabelecimento { get; set; }
+
+    private string GetImageUrl(string? relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath))
+        {
+            return "https://via.placeholder.com/150";
+        }
+
+        return $"{ApiConstants.BaseUrlImagem}/{relativePath}";
+    }
+}

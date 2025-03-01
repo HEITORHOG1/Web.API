@@ -1,0 +1,144 @@
+﻿@page "/produtos/{estabelecimentoId:int}/{produtoId:int}"
+@using MarketplaceHybrid.Shared.Configurations
+@using MarketplaceHybrid.Shared.Models
+@using MarketplaceHybrid.Shared.Services.Interfaces
+@inject IProdutoService ProdutoService
+@inject ICarrinhoService CarrinhoService
+
+<MudContainer>
+    @if (produto != null)
+    {
+        <MudPaper Elevation="5" Style="padding:16px;">
+            <MudCard>
+                <MudCardMedia Image="@GetImageUrl(produto.Imagem)" Alt="@produto.Nome" Height="300" />
+
+                <MudCardContent>
+                    <MudText Typo="Typo.h4" GutterBottom="true">@produto.Nome</MudText>
+                    <MudText Typo="Typo.body1" GutterBottom="true">@produto.Descricao</MudText>
+                    <MudText Typo="Typo.body2" GutterBottom="true">Preço: <strong>R$ @produto.Preco.ToString("N2")</strong></MudText>
+                    <MudText Typo="Typo.caption">Em estoque: @produto.QuantidadeEmEstoque</MudText>
+
+                    <MudDivider Style="margin-top:16px; margin-bottom:16px;" />
+
+                    <!-- Seção para definir quantidade e adicionar ao carrinho -->
+                    <MudGrid AlignItems="Center" Justify="Justify.Center">
+                        <MudItem xs="12" sm="6">
+                            <MudGrid AlignItems="Center" Justify="Justify.SpaceBetween">
+                                <!-- Botão de diminuir quantidade -->
+                                <MudItem>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Remove" Color="Color.Primary" Disabled="@(quantidade <= 1)" OnClick="DecrementarQuantidade" />
+                                </MudItem>
+
+                                <!-- Texto da quantidade -->
+                                <MudItem>
+                                    <MudText Typo="Typo.body1">@quantidade</MudText>
+                                </MudItem>
+
+                                <!-- Botão de aumentar quantidade -->
+                                <MudItem>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Disabled="@(quantidade >= produto.QuantidadeEmEstoque)" OnClick="IncrementarQuantidade" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudItem>
+
+                        <!-- Botão de adicionar ao carrinho -->
+                        <MudItem xs="12" sm="6">
+                            <MudButton Color="Color.Primary" Disabled="@(quantidade <= 0)" OnClick="AdicionarAoCarrinho" FullWidth="true">
+                                Adicionar - R$ @((quantidade * produto.Preco).ToString("N2"))
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+        </MudPaper>
+        <ResumoPedido />
+    }
+    else if (erroCarregamento)
+    {
+        <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Error">Erro ao carregar os detalhes do produto.</MudText>
+    }
+    else
+    {
+        <MudText Typo="Typo.body1" Align="Align.Center">Carregando detalhes do produto...</MudText>
+    }
+</MudContainer>
+
+@code {
+    [Parameter]
+    public int EstabelecimentoId { get; set; }
+
+    [Parameter]
+    public int ProdutoId { get; set; }
+
+    private Cardapio? produto;
+    private int quantidade = 1;
+    private bool erroCarregamento = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CarrinhoService.MarcarComoInicializado(); // Inicializa o JSInterop
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            produto = await ProdutoService.GetProdutoByIdAsync(EstabelecimentoId, ProdutoId);
+            if (produto == null)
+            {
+                erroCarregamento = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            erroCarregamento = true;
+            Console.WriteLine($"Erro ao carregar os detalhes do produto: {ex.Message}");
+        }
+    }
+
+    private void IncrementarQuantidade()
+    {
+        if (produto != null && quantidade < produto.QuantidadeEmEstoque)
+        {
+            quantidade++;
+        }
+    }
+
+    private void DecrementarQuantidade()
+    {
+        if (quantidade > 1)
+        {
+            quantidade--;
+        }
+    }
+
+    private async Task AdicionarAoCarrinho()
+    {
+        if (produto != null)
+        {
+            var item = new CarrinhoItem
+            {
+                ProdutoId = produto.Id,
+                Nome = produto.Nome,
+                Preco = produto.Preco,
+                Quantidade = quantidade
+            };
+
+            await CarrinhoService.AdicionarAoCarrinhoAsync(item);
+            Console.WriteLine("Produto adicionado ao carrinho!");
+        }
+    }
+
+    private string GetImageUrl(string? relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath))
+        {
+            return "https://via.placeholder.com/150";
+        }
+
+        return $"{ApiConstants.BaseUrlImagem}/{relativePath}";
+    }
+}
