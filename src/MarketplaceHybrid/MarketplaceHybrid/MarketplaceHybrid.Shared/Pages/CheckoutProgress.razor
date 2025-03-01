@@ -1,0 +1,19 @@
+﻿@* CheckoutProgress.razor *@
+<MudPaper Class="p-2 mb-3 d-flex" Elevation="0">
+    <MudStepper ActiveStep="@CurrentStep" Linear="true" Class="mud-width-full">
+        <MudStep Title="Carrinho">
+            <MudText>Revise seus itens</MudText>
+        </MudStep>
+        <MudStep Title="Entrega">
+            <MudText>Selecione o endereço</MudText>
+        </MudStep>
+        <MudStep Title="Pagamento">
+            <MudText>Escolha como pagar</MudText>
+        </MudStep>
+    </MudStepper>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public int CurrentStep { get; set; }
+}

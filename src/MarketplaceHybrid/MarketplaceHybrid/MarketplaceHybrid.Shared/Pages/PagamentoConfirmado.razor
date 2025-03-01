@@ -1,0 +1,32 @@
+﻿@* PagamentoConfirmado.razor *@
+@page "/pagamento-confirmado/{pedidoId:int}"
+
+<MudContainer Class="py-8 text-center">
+    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" />
+    <MudText Typo="Typo.h4" Class="mt-4">Pagamento Confirmado!</MudText>
+    <MudText Typo="Typo.body1" Class="mt-2 mb-6">
+        Seu pedido #@PedidoId foi confirmado e está sendo preparado.
+    </MudText>
+
+    <MudPaper Class="pa-4 mx-auto my-4" Style="max-width: 400px;">
+        <MudText Typo="Typo.h6" Class="mb-2">Resumo do pedido</MudText>
+        <MudDivider Class="mb-4" />
+
+        @* Aqui você pode adicionar detalhes do pedido se disponíveis *@
+        <MudText Typo="Typo.body2" Class="mb-1">Status: <b>Confirmado</b></MudText>
+        <MudText Typo="Typo.body2" Class="mb-1">Tempo estimado: <b>40-50 min</b></MudText>
+    </MudPaper>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Error"
+               Class="mt-4" OnClick="@(() => NavigationManager.NavigateTo("/"))">
+        Voltar para a Loja
+    </MudButton>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public int PedidoId { get; set; }
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; }
+}

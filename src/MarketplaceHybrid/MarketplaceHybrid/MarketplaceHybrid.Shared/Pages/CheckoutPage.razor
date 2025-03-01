@@ -1,12 +1,17 @@
 ﻿@page "/checkout/{urlEncoded}"
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager NavigationManager
 
 <MudContainer Style="height: 100vh; width: 100vw; padding: 0; margin: 0;">
-    <MudText Typo="Typo.h5" Class="mb-2" Style="padding: 16px; text-align: center; font-size: 1.5rem;">
-        Pagamento Seguro
-    </MudText>
+    <MudAppBar Elevation="0" Color="Color.Error">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Inherit"
+                       OnClick="@(() => NavigationManager.NavigateTo("/carrinho"))" />
+        <MudText Typo="Typo.h6" Class="ml-2">Pagamento Seguro</MudText>
+    </MudAppBar>
 
-    <MudPaper Elevation="4" Style="height: calc(100vh - 72px); width: 100%; padding: 0; margin: 0;">
-        <iframe src="@DecodedUrl" style="width: 100%; height: 100%; border: none;">
+    <MudPaper Elevation="0" Style="height: calc(100vh - 64px); width: 100%; padding: 0; margin: 0;">
+        <iframe id="checkout-frame" src="@DecodedUrl" style="width: 100%; height: 100%; border: none;"
+                @onload="HandleIframeLoad">
             Seu navegador não suporta iframes.
         </iframe>
     </MudPaper>
@@ -17,4 +22,21 @@
     public string UrlEncoded { get; set; }
 
     private string DecodedUrl => Uri.UnescapeDataString(UrlEncoded);
+
+    private void HandleIframeLoad()
+    {
+        // Tentar detectar redirecionamentos que indicam conclusão do pagamento
+        if (DecodedUrl.Contains("/success") || DecodedUrl.Contains("/approved"))
+        {
+            NavigationManager.NavigateTo("/checkout/callback?status=approved");
+        }
+        else if (DecodedUrl.Contains("/pending"))
+        {
+            NavigationManager.NavigateTo("/checkout/callback?status=pending");
+        }
+        else if (DecodedUrl.Contains("/failure") || DecodedUrl.Contains("/rejected"))
+        {
+            NavigationManager.NavigateTo("/checkout/callback?status=failure");
+        }
+    }
 }

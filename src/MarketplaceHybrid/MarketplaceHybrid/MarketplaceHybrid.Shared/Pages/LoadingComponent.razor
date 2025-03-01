@@ -1,0 +1,36 @@
+﻿@* LoadingComponent.razor *@
+<div class="@(IsFullPage ? "loading-full" : "loading-container")">
+    <MudProgressCircular Color="Color.Error" Indeterminate="true" Size="@Size" />
+    @if (!string.IsNullOrEmpty(Message))
+    {
+        <MudText Typo="Typo.body1" Class="ml-3">@Message</MudText>
+    }
+</div>
+
+<style>
+    .loading-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+
+    .loading-full {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string Message { get; set; } = "Carregando...";
+
+    [Parameter]
+    public bool IsFullPage { get; set; } = false;
+
+    [Parameter]
+    public Size Size { get; set; } = Size.Medium;
+}

@@ -182,62 +182,61 @@
 
         IsLoading = true;
         var pedidoDto = new FinalizarCompraDto
+        {
+            EstabelecimentoId = Endpoints.EstabelecimentoID,
+            EnderecoEntrega = "Endereço preenchido pelo usuário",
+            FormaPagamento = MetodoPagamento,
+            ValorTotal = TotalComEntrega,
+            TaxaEntrega = TaxaEntrega,
+            Itens = carrinho.Select(i => new PedidoItemDto
             {
-                EstabelecimentoId = Endpoints.EstabelecimentoID,
-                EnderecoEntrega = "Endereço preenchido pelo usuário",
-                FormaPagamento = MetodoPagamento,
-                ValorTotal = TotalComEntrega,
-                TaxaEntrega = TaxaEntrega,
-                Itens = carrinho.Select(i => new PedidoItemDto
-                {
-                    ProdutoId = i.ProdutoId,
-                    Quantidade = i.Quantidade,
-                    PrecoUnitario = i.Preco,
-                    Subtotal = i.Quantidade * i.Preco
-                }).ToList()
-            };
+                ProdutoId = i.ProdutoId,
+                Quantidade = i.Quantidade,
+                PrecoUnitario = i.Preco,
+                Subtotal = i.Quantidade * i.Preco
+            }).ToList()
+        };
 
         try
         {
-            // Recupera o JSON do token do AuthService
             var tokenJson = await AuthService.GetTokenAsync();
             if (string.IsNullOrEmpty(tokenJson))
             {
-                Snackbar.Add("Erro ao recuperar o token de autenticação. Faça login novamente.", Severity.Warning);
-                IsLoading = false;
-                return;
-            }
-            // Extrai o campo "token" do JSON
-            var token = ExtractTokenFromJson(tokenJson);
-            if (string.IsNullOrEmpty(token))
-            {
-                Snackbar.Add("Token de autenticação inválido. Faça login novamente.", Severity.Warning);
+                Snackbar.Add("Erro de autenticação. Faça login novamente.", Severity.Warning);
                 IsLoading = false;
                 return;
             }
 
-            // Configura o cabeçalho de autenticação
+            var token = ExtractTokenFromJson(tokenJson);
             var request = new HttpRequestMessage(HttpMethod.Post, Endpoints.FinalizarPedido)
-                {
-                    Content = JsonContent.Create(pedidoDto) // Adiciona o payload
-                };
+            {
+                Content = JsonContent.Create(pedidoDto)
+            };
             request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-            // Envia a requisição
             var response = await HttpClient.SendAsync(request);
             if (response.IsSuccessStatusCode)
             {
                 var resultado = await response.Content.ReadFromJsonAsync<PedidoResponse>();
                 if (!string.IsNullOrEmpty(resultado?.PagamentoUrl))
                 {
-                    // Codifica a URL para ser usada como parâmetro na navegação
-                    var encodedUrl = Uri.EscapeDataString(resultado.PagamentoUrl);
-                    NavigationManager.NavigateTo($"/checkout/{encodedUrl}");
+                    // Limpar carrinho
+                    await CarrinhoService.LimparCarrinhoAsync();
+
+                    // Armazenar ID do pedido para verificação posterior
+                    await localStorage.SetItemAsync("last_order_id", resultado.PedidoId);
+
+                    // Redirecionar para página de pagamento
+                    NavigationManager.NavigateTo($"/checkout/{Uri.EscapeDataString(resultado.PagamentoUrl)}");
                 }
                 else
                 {
                     Snackbar.Add("Erro ao gerar URL de pagamento.", Severity.Error);
                 }
+            }
+            else
+            {
+                Snackbar.Add($"Erro ao finalizar pedido: {response.StatusCode}", Severity.Error);
             }
         }
         catch (Exception ex)

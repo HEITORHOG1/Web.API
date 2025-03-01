@@ -1,0 +1,56 @@
+﻿@* CheckoutCallback.razor *@
+@page "/checkout/callback"
+@inject ILocalStorageService LocalStorage
+@inject NavigationManager NavigationManager
+@inject IPedidoService PedidoService
+@inject ISnackbar Snackbar
+
+<LoadingComponent Message="Verificando pagamento..." IsFullPage="true" />
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string Status { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string ExternalReference { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var pedidoId = await LocalStorage.GetItemAsync<int>("last_order_id");
+
+        if (string.IsNullOrEmpty(Status))
+        {
+            // Status não fornecido, verificar pedido manualmente
+            var pedido = await PedidoService.GetPedidoByIdAsync(pedidoId);
+            if (pedido != null && pedido.Status == StatusPedido.PagamentoAprovado)
+            {
+                NavigationManager.NavigateTo($"/pagamento-confirmado/{pedidoId}");
+                return;
+            }
+        }
+
+        switch (Status?.ToLower())
+        {
+            case "approved":
+                Snackbar.Add("Pagamento aprovado com sucesso!", Severity.Success);
+                NavigationManager.NavigateTo($"/pagamento-confirmado/{pedidoId}");
+                break;
+            case "pending":
+                Snackbar.Add("Pagamento pendente. Aguardando confirmação.", Severity.Info);
+                NavigationManager.NavigateTo("/");
+                break;
+            case "failure":
+            case "rejected":
+                Snackbar.Add("Pagamento recusado. Tente novamente.", Severity.Error);
+                NavigationManager.NavigateTo("/carrinho");
+                break;
+            default:
+                // Não conseguimos determinar o status
+                Snackbar.Add("Não foi possível confirmar o pagamento.", Severity.Warning);
+                NavigationManager.NavigateTo("/");
+                break;
+        }
+    }
+}

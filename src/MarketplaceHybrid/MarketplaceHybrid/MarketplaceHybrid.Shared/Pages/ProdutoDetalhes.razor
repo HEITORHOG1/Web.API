@@ -4,64 +4,96 @@
 @using MarketplaceHybrid.Shared.Services.Interfaces
 @inject IProdutoService ProdutoService
 @inject ICarrinhoService CarrinhoService
+@inject ISnackbar Snackbar
 
-<MudContainer>
+<MudPaper Class="p-0 rounded-lg overflow-hidden" Elevation="2">
     @if (produto != null)
     {
-        <MudPaper Elevation="5" Style="padding:16px;">
-            <MudCard>
-                <MudCardMedia Image="@GetImageUrl(produto.Imagem)" Alt="@produto.Nome" Height="300" />
-
-                <MudCardContent>
-                    <MudText Typo="Typo.h4" GutterBottom="true">@produto.Nome</MudText>
-                    <MudText Typo="Typo.body1" GutterBottom="true">@produto.Descricao</MudText>
-                    <MudText Typo="Typo.body2" GutterBottom="true">Preço: <strong>R$ @produto.Preco.ToString("N2")</strong></MudText>
-                    <MudText Typo="Typo.caption">Em estoque: @produto.QuantidadeEmEstoque</MudText>
-
-                    <MudDivider Style="margin-top:16px; margin-bottom:16px;" />
-
-                    <!-- Seção para definir quantidade e adicionar ao carrinho -->
-                    <MudGrid AlignItems="Center" Justify="Justify.Center">
-                        <MudItem xs="12" sm="6">
-                            <MudGrid AlignItems="Center" Justify="Justify.SpaceBetween">
-                                <!-- Botão de diminuir quantidade -->
-                                <MudItem>
-                                    <MudIconButton Icon="@Icons.Material.Filled.Remove" Color="Color.Primary" Disabled="@(quantidade <= 1)" OnClick="DecrementarQuantidade" />
-                                </MudItem>
-
-                                <!-- Texto da quantidade -->
-                                <MudItem>
-                                    <MudText Typo="Typo.body1">@quantidade</MudText>
-                                </MudItem>
-
-                                <!-- Botão de aumentar quantidade -->
-                                <MudItem>
-                                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Disabled="@(quantidade >= produto.QuantidadeEmEstoque)" OnClick="IncrementarQuantidade" />
-                                </MudItem>
-                            </MudGrid>
-                        </MudItem>
-
-                        <!-- Botão de adicionar ao carrinho -->
-                        <MudItem xs="12" sm="6">
-                            <MudButton Color="Color.Primary" Disabled="@(quantidade <= 0)" OnClick="AdicionarAoCarrinho" FullWidth="true">
-                                Adicionar - R$ @((quantidade * produto.Preco).ToString("N2"))
-                            </MudButton>
-                        </MudItem>
-                    </MudGrid>
-                </MudCardContent>
-            </MudCard>
-        </MudPaper>
-        <ResumoPedido />
-    }
-    else if (erroCarregamento)
-    {
-        <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Error">Erro ao carregar os detalhes do produto.</MudText>
+        <div class="d-flex flex-column flex-md-row">
+            <!-- Imagem do produto -->
+            <div class="product-image-container">
+                <MudImage Src="@GetImageUrl(produto.Imagem)" Alt="@produto.Nome" Class="product-image" 
+                         ObjectFit="ObjectFit.Cover" Width="100%" Height="100%"/>
+            </div>
+            
+            <!-- Detalhes do produto -->
+            <div class="pa-4 d-flex flex-column">
+                <MudText Typo="Typo.h4" Class="mb-2">@produto.Nome</MudText>
+                <MudText Typo="Typo.body1" Class="mb-4">@produto.Descricao</MudText>
+                
+                <MudDivider Class="my-3" />
+                
+                <MudText Typo="Typo.h5" Color="Color.Error" Class="mb-4" Style="font-weight:bold">
+                    R$ @produto.Preco.ToString("N2")
+                </MudText>
+                
+                @if (produto.Disponivel && produto.QuantidadeEmEstoque > 0)
+                {
+                    <MudChip Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success">
+                        Disponível (@produto.QuantidadeEmEstoque em estoque)
+                    </MudChip>
+                }
+                else
+                {
+                    <MudChip Icon="@Icons.Material.Filled.Cancel" Color="Color.Error">
+                        Indisponível
+                    </MudChip>
+                }
+                
+                <MudDivider Class="my-4" />
+                
+                <!-- Quantidade -->
+                <MudText Typo="Typo.subtitle1" Class="mb-2">Quantidade:</MudText>
+                <div class="d-flex align-center mb-4">
+                    <MudIconButton Icon="@Icons.Material.Filled.Remove" Color="Color.Error" 
+                                  Disabled="@(quantidade <= 1)" OnClick="DecrementarQuantidade" />
+                    <MudText Typo="Typo.h6" Class="mx-4">@quantidade</MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Error" 
+                                  Disabled="@(quantidade >= produto.QuantidadeEmEstoque)" OnClick="IncrementarQuantidade" />
+                </div>
+                
+                <!-- Botão adicionar ao carrinho -->
+                <MudButton Variant="Variant.Filled" Color="Color.Error" 
+                          FullWidth="true" OnClick="AdicionarAoCarrinho"
+                          StartIcon="@Icons.Material.Filled.ShoppingCart" Size="Size.Large"
+                          Disabled="@(!produto.Disponivel || produto.QuantidadeEmEstoque <= 0)">
+                    Adicionar - R$ @((quantidade * produto.Preco).ToString("N2"))
+                </MudButton>
+            </div>
+        </div>
     }
     else
     {
-        <MudText Typo="Typo.body1" Align="Align.Center">Carregando detalhes do produto...</MudText>
+        <div class="d-flex align-center justify-center pa-6">
+            <MudProgressCircular Color="Color.Error" Indeterminate="true" />
+            <MudText Class="ml-3">Carregando produto...</MudText>
+        </div>
     }
-</MudContainer>
+</MudPaper>
+
+<style>
+    .product-image-container {
+        height: 350px;
+        width: 100%;
+        overflow: hidden;
+    }
+    
+    @media(min-width: 600px) {
+        .product-image-container {
+            width: 40%;
+            height: auto;
+        }
+    }
+    
+    .product-image {
+        transition: transform 0.3s;
+    }
+    
+    .product-image:hover {
+        transform: scale(1.05);
+    }
+</style>
+
 
 @code {
     [Parameter]
