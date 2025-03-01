@@ -1,14 +1,29 @@
-﻿@* CheckoutProgress.razor *@
-<MudPaper Class="p-2 mb-3 d-flex" Elevation="0">
-    <MudStepper ActiveStep="@CurrentStep" Linear="true" Class="mud-width-full">
-        <MudStep Title="Carrinho">
-            <MudText>Revise seus itens</MudText>
+﻿@using MudBlazor
+
+<MudPaper Class="py-3 px-4 mb-4" Elevation="1">
+    <MudStepper ActiveStep="@CurrentStep" Linear="true" Class="mt-2">
+        <MudStep Title="Carrinho" Icon="@Icons.Material.Filled.ShoppingCart">
+            <MudText Typo="Typo.caption" Color="@(CurrentStep >= 0 ? Color.Default : Color.Transparent)">
+                Revise seus itens
+            </MudText>
         </MudStep>
-        <MudStep Title="Entrega">
-            <MudText>Selecione o endereço</MudText>
+
+        <MudStep Title="Entrega" Icon="@Icons.Material.Filled.LocationOn">
+            <MudText Typo="Typo.caption" Color="@(CurrentStep >= 1 ? Color.Default : Color.Transparent)">
+                Selecione o endereço
+            </MudText>
         </MudStep>
-        <MudStep Title="Pagamento">
-            <MudText>Escolha como pagar</MudText>
+
+        <MudStep Title="Pagamento" Icon="@Icons.Material.Filled.Payment">
+            <MudText Typo="Typo.caption" Color="@(CurrentStep >= 2 ? Color.Default : Color.Transparent)">
+                Escolha como pagar
+            </MudText>
+        </MudStep>
+
+        <MudStep Title="Confirmação" Icon="@Icons.Material.Filled.CheckCircle">
+            <MudText Typo="Typo.caption" Color="@(CurrentStep >= 3 ? Color.Default : Color.Transparent)">
+                Pedido finalizado
+            </MudText>
         </MudStep>
     </MudStepper>
 </MudPaper>

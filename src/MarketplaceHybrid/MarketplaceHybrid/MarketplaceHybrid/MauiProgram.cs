@@ -32,6 +32,8 @@ namespace MarketplaceHybrid
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IHorarioFuncionamentoService, HorarioFuncionamentoService>();
             builder.Services.AddScoped<IEnderecoClienteService, EnderecoClienteService>();
+            builder.Services.AddScoped<IPedidoService, PedidoService>();
+            builder.Services.AddScoped<ILocalStorageService, LocalStorageService>();
 
             // Adiciona os serviços do MudBlazor
             builder.Services.AddMudServices(config =>

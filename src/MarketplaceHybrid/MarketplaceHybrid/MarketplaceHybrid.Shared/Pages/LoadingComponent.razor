@@ -1,10 +1,41 @@
-﻿@* LoadingComponent.razor *@
-<div class="@(IsFullPage ? "loading-full" : "loading-container")">
-    <MudProgressCircular Color="Color.Error" Indeterminate="true" Size="@Size" />
-    @if (!string.IsNullOrEmpty(Message))
-    {
-        <MudText Typo="Typo.body1" Class="ml-3">@Message</MudText>
-    }
+﻿@using MudBlazor
+
+<div class="@GetContainerClass()">
+    <div class="loading-content @(IsCentered ? "centered" : "")">
+        @if (ShowLogo)
+        {
+            <div class="logo-container mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.Restaurant"
+                         Color="Color.Primary"
+                         Size="Size.Large" />
+            </div>
+        }
+
+        <MudProgressCircular Color="Color.Primary"
+                             Indeterminate="true"
+                             Size="@Size"
+                             Class="mb-3" />
+
+        @if (!string.IsNullOrEmpty(Message))
+        {
+            <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-2">@Message</MudText>
+        }
+
+        @if (!string.IsNullOrEmpty(SubMessage))
+        {
+            <MudText Typo="Typo.caption" Align="Align.Center" Color="Color.Default">@SubMessage</MudText>
+        }
+
+        @if (ShowButton)
+        {
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Primary"
+                       OnClick="OnButtonClick"
+                       Class="mt-3">
+                @ButtonText
+            </MudButton>
+        }
+    </div>
 </div>
 
 <style>
@@ -22,6 +53,38 @@
         justify-content: center;
         min-height: 300px;
     }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.9);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .loading-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .centered {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .logo-container {
+        animation: pulse 1.5s infinite ease-in-out;
+    }
+
+    
 </style>
 
 @code {
@@ -29,8 +92,38 @@
     public string Message { get; set; } = "Carregando...";
 
     [Parameter]
+    public string SubMessage { get; set; } = "";
+
+    [Parameter]
     public bool IsFullPage { get; set; } = false;
 
     [Parameter]
+    public bool IsOverlay { get; set; } = false;
+
+    [Parameter]
+    public bool IsCentered { get; set; } = false;
+
+    [Parameter]
     public Size Size { get; set; } = Size.Medium;
+
+    [Parameter]
+    public bool ShowLogo { get; set; } = false;
+
+    [Parameter]
+    public bool ShowButton { get; set; } = false;
+
+    [Parameter]
+    public string ButtonText { get; set; } = "Tentar novamente";
+
+    [Parameter]
+    public EventCallback OnButtonClick { get; set; }
+
+    private string GetContainerClass()
+    {
+        if (IsOverlay)
+            return "loading-overlay";
+        if (IsFullPage)
+            return "loading-full";
+        return "loading-container";
+    }
 }

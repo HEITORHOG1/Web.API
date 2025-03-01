@@ -8,32 +8,61 @@
 @inject IProdutoService ProdutoService
 @inject IHorarioFuncionamentoService HorarioFuncionamentoService
 @inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
 
-<PageTitle>Página Inicial</PageTitle>
+<PageTitle>Marketplace - Sua Comida em Minutos</PageTitle>
 
-<!-- Banner principal -->
-<MudCarousel Class="mud-width-full mud-height-full rounded-lg" Style="height:200px;" ShowArrows="true" ShowDelimiters="true" AutoCycle="true" TData="object">
+<!-- Hero Banner Carousel -->
+<MudCarousel Class="mud-width-full rounded-lg mb-4" 
+             Style="height:180px;" 
+             ShowArrows="true" 
+             ShowDelimiters="true" 
+             AutoCycle="true" 
+             TData="object">
     <MudCarouselItem>
-        <div class="d-flex justify-center align-center" style="height:100%; background-color:#594AE2;">
-            <MudText Typo="Typo.h4" Color="Color.Surface" Align="Align.Center">Ofertas Especiais</MudText>
+        <div class="d-flex flex-column justify-center" 
+             style="height:100%; background:linear-gradient(45deg, #ea1d2c, #ff6b6b); color: white; padding: 16px;">
+            <MudText Typo="Typo.h5" Align="Align.Center">Delivery Grátis</MudText>
+            <MudText Typo="Typo.body1" Align="Align.Center">Em todos os pedidos acima de R$50</MudText>
+            <div class="d-flex justify-center mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@(() => NavigationManager.NavigateTo("/produtos/51"))">
+                    Ver Cardápio
+                </MudButton>
+            </div>
         </div>
     </MudCarouselItem>
     <MudCarouselItem>
-        <div class="d-flex justify-center align-center" style="height:100%; background-color:#FF4081;">
-            <MudText Typo="Typo.h4" Color="Color.Surface" Align="Align.Center">Delivery Grátis</MudText>
+        <div class="d-flex flex-column justify-center" 
+             style="height:100%; background-color:#512BD4; color: white; padding: 16px;">
+            <MudText Typo="Typo.h5" Align="Align.Center">Ofertas Especiais</MudText>
+            <MudText Typo="Typo.body1" Align="Align.Center">Aproveite descontos exclusivos!</MudText>
+            <div class="d-flex justify-center mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Dark">
+                    Ver Ofertas
+                </MudButton>
+            </div>
         </div>
     </MudCarouselItem>
     <MudCarouselItem>
-        <div class="d-flex justify-center align-center" style="height:100%; background-color:#212121;">
-            <MudText Typo="Typo.h4" Color="Color.Surface" Align="Align.Center">Novos Produtos</MudText>
+        <div class="d-flex flex-column justify-center" 
+             style="height:100%; background-color:#212121; color: white; padding: 16px;">
+            <MudText Typo="Typo.h5" Align="Align.Center">Novos Produtos</MudText>
+            <MudText Typo="Typo.body1" Align="Align.Center">Confira as novidades do cardápio!</MudText>
+            <div class="d-flex justify-center mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Error">
+                    Explorar
+                </MudButton>
+            </div>
         </div>
     </MudCarouselItem>
 </MudCarousel>
 
-<!-- Informações do Estabelecimento -->
+<!-- Estabelecimento Card - Enhanced with status and more info -->
 @if (estabelecimentos != null && estabelecimentos.Any())
 {
-    <MudCard Class="my-4 rounded-lg" Elevation="3">
+    <MudCard Class="mb-4 rounded-lg" Elevation="3">
+        <MudCardMedia Image="@GetImageUrl(estabelecimentos.First().UrlImagem)" Height="180" />
+        
         <MudCardHeader>
             <CardHeaderAvatar>
                 <MudAvatar Color="Color.Error" Size="Size.Large">
@@ -44,42 +73,59 @@
                 <MudText Typo="Typo.h6">@estabelecimentos.First().NomeFantasia</MudText>
                 <MudText Typo="Typo.caption">@estabelecimentos.First().Endereco</MudText>
             </CardHeaderContent>
-           <CardHeaderActions>
-                <MudChip T="string"
+            <CardHeaderActions>
+                <MudChip T="object"
                          Color="@(estabelecimentos.First().EstaAberto ? Color.Success : Color.Error)"
                          Size="Size.Small"
+                         Label="true"
                          Text="@(estabelecimentos.First().EstaAberto ? "Aberto" : "Fechado")">
                 </MudChip>
 
-</CardHeaderActions>
+            </CardHeaderActions>
         </MudCardHeader>
+        
         <MudCardContent>
-            <MudText Typo="Typo.body2">@estabelecimentos.First().Descricao</MudText>
-            <div class="d-flex align-center mt-2">
-                <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Color="Color.Warning" />
-                <MudText Typo="Typo.body2" Class="ml-1">4.7</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">@estabelecimentos.First().Descricao</MudText>
+            
+            <div class="d-flex align-center flex-wrap gap-2">
+                <div class="d-flex align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Color="Color.Warning" />
+                    <MudText Typo="Typo.body2" Class="ml-1">4.7</MudText>
+                </div>
+                
                 <MudDivider Vertical="true" FlexItem="true" Class="mx-2" />
-                <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" />
-                <MudText Typo="Typo.body2" Class="ml-1">40-50 min</MudText>
+                
+                <div class="d-flex align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" />
+                    <MudText Typo="Typo.body2" Class="ml-1">40-50 min</MudText>
+                </div>
+                
                 <MudDivider Vertical="true" FlexItem="true" Class="mx-2" />
-                <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small" />
-                <MudText Typo="Typo.body2" Class="ml-1 mud-success-text">Entrega Grátis</MudText>
+                
+                <div class="d-flex align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small" />
+                    <MudText Typo="Typo.body2" Class="ml-1 mud-success-text">Entrega Grátis</MudText>
+                </div>
             </div>
         </MudCardContent>
+        
         <MudCardActions>
-            <MudButton 
-                Variant="Variant.Text" 
-                Color="Color.Error" 
-                EndIcon="@Icons.Material.Filled.ArrowForward"
-                OnClick="@(() => NavigateToLoja(estabelecimentos.First().Id))">
+            <MudButton Variant="Variant.Text" 
+                       Color="Color.Primary" 
+                       EndIcon="@Icons.Material.Filled.ArrowForward"
+                       OnClick="@(() => NavigateToLoja(estabelecimentos.First().Id))">
                 Ver mais
             </MudButton>
         </MudCardActions>
     </MudCard>
 }
+else
+{
+    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="200px" Animation="Animation.Pulse" />
+}
 
-<!-- Seção de Categorias (fake para visualização) -->
-<MudText Typo="Typo.h6" Class="mb-2">Categorias</MudText>
+<!-- Categorias Section - Enhanced with icons -->
+<MudText Typo="Typo.h5" Class="mb-3 font-weight-bold">Categorias</MudText>
 <MudGrid>
     @if (produtos != null)
     {
@@ -91,41 +137,54 @@
 
         @foreach (var categoria in categorias)
         {
-            <MudItem xs="3">
-                <MudPaper Class="d-flex align-center justify-center flex-column py-3"
-                          Elevation="0" Outlined="true">
-                    <MudAvatar Color="Color.Error" Style="margin-bottom:4px;" Size="Size.Medium">
-                        <MudIcon Icon="@Icons.Material.Filled.Fastfood" />
-                    </MudAvatar>
-                    <MudText Typo="Typo.caption">@categoria</MudText>
-                </MudPaper>
+            <MudItem xs="6" sm="3">
+                <MudCard Elevation="0" Class="categoria-card" @onclick="@(() => FilterByCategory(categoria))">
+                    <MudCardContent Class="pa-2 d-flex flex-column align-center justify-center">
+                        <MudAvatar Color="Color.Primary" Style="margin-bottom:8px;" Size="Size.Large">
+                            <MudIcon Icon="@GetCategoryIcon(categoria)" />
+                        </MudAvatar>
+                        <MudText Typo="Typo.subtitle2" Align="Align.Center">@categoria</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    }
+    else
+    {
+        @for (int i = 0; i < 4; i++)
+        {
+            <MudItem xs="6" sm="3">
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="100px" Animation="Animation.Pulse" />
             </MudItem>
         }
     }
 </MudGrid>
 
-<!-- Lista de Produtos -->
-<MudText Typo="Typo.h6" Class="mt-4 mb-2">Destaques</MudText>
+<!-- Produtos em Destaque Section - Enhanced card design -->
+<MudText Typo="Typo.h5" Class="mt-6 mb-3 font-weight-bold">Destaques</MudText>
 @if (produtos != null && produtos.Any())
 {
     <MudGrid>
         @foreach (var produto in produtos.Take(6))
         {
-            <MudItem xs="12" sm="6">
+            <MudItem xs="12" sm="6" md="4">
                 <MudCard @onclick="@(() => NavigationManager.NavigateTo($"/produtos/{51}/{produto.Id}"))"
                          Class="produto-card my-2" Elevation="2">
-                    <MudCardMedia Image="@GetImageUrl(produto.Imagem)" Height="120" />
-                    <MudCardContent Class="py-2 px-3">
-                        <MudText Typo="Typo.subtitle1" Class="mud-text-truncate">@produto.Nome</MudText>
-                        <MudText Typo="Typo.caption" Class="mud-text-truncate">@produto.Descricao</MudText>
+                    <MudCardMedia Image="@GetImageUrl(produto.Imagem)" Height="160" />
+                    <MudCardContent Class="pa-3">
+                        <MudText Typo="Typo.subtitle1" Class="mud-text-truncate font-weight-bold">@produto.Nome</MudText>
+                        <MudText Typo="Typo.caption" Class="mb-2 two-line-text">@produto.Descricao</MudText>
                         <div class="d-flex justify-space-between align-center mt-2">
-                            <MudText Typo="Typo.body1" Style="font-weight:bold; color:#ea1d2c;">
+                            <MudText Typo="Typo.h6" Style="color:#ea1d2c; font-weight:bold;">
                                 R$ @produto.Preco.ToString("N2")
                             </MudText>
-                            <MudIconButton Icon="@Icons.Material.Filled.Add"
-                                           Color="Color.Error"
-                                           Size="Size.Small"
-                                           OnClick="@((e) => { NavigationManager.NavigateTo($"/produtos/{51}/{produto.Id}"); })" />
+                            <MudButton Variant="Variant.Filled" 
+                                      Color="Color.Primary"
+                                      Size="Size.Small"
+                                      OnClick="@((e) => { AddToCart(produto); })"
+                                      StartIcon="@Icons.Material.Filled.Add">
+                                Adicionar
+                            </MudButton>
                         </div>
                     </MudCardContent>
                 </MudCard>
@@ -133,44 +192,81 @@
         }
     </MudGrid>
 
-    <div class="d-flex justify-center mt-3">
-        <MudButton Variant="Variant.Filled" Color="Color.Error"
-                   OnClick="@(() => NavigationManager.NavigateTo($"/produtos/51"))">
-            Ver Todos os Produtos
+    <div class="d-flex justify-center mt-4">
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary"
+                   OnClick="@(() => NavigationManager.NavigateTo($"/produtos/51"))"
+                   EndIcon="@Icons.Material.Filled.ArrowForward">
+            Ver Cardápio Completo
         </MudButton>
     </div>
 }
 else
 {
-    <MudProgressCircular Color="Color.Error" Indeterminate="true" />
-    <MudText Typo="Typo.body1" Class="ml-2">Carregando produtos...</MudText>
+    <MudGrid>
+        @for (int i = 0; i < 6; i++)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="250px" Animation="Animation.Pulse" />
+            </MudItem>
+        }
+    </MudGrid>
 }
 
 <style>
     .produto-card {
         cursor: pointer;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: transform 0.3s, box-shadow 0.2s;
+        height: 100%;
         overflow: hidden;
+        border-radius: 12px;
     }
     
     .produto-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        transform: translateY(-4px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
     }
     
     .mud-card-media {
-        transition: transform 0.3s;
+        transition: transform 0.5s;
         background-size: cover;
+        background-position: center;
     }
     
     .produto-card:hover .mud-card-media {
-        transform: scale(1.05);
+        transform: scale(1.08);
+    }
+    
+    .categoria-card {
+        cursor: pointer;
+        transition: all 0.2s;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        height: 100%;
+    }
+    
+    .categoria-card:hover {
+        box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        border-color: #ea1d2c;
+        transform: translateY(-2px);
+    }
+    
+    .two-line-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        height: 36px;
     }
 </style>
 
 @code {
     private List<Estabelecimento>? estabelecimentos;
     private List<Cardapio>? produtos;
+    private string? selectedCategory;
+
+    [Inject] private ICarrinhoService CarrinhoService { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -180,8 +276,14 @@ else
             if (estabelecimentoResponse != null && estabelecimentoResponse.Estabelecimento != null)
             {
                 var estabelecimento = estabelecimentoResponse.Estabelecimento;
+                // Convert DayOfWeek to int (0 = Sunday, 1 = Monday, etc.)
+                int diaSemanaInt = (int)DateTime.Now.DayOfWeek;
+
+                // Convert TimeSpan to string in format "HH:mm"
+                string horaAtualString = DateTime.Now.ToString("HH:mm");
+
                 estabelecimento.EstaAberto = await HorarioFuncionamentoService.EstaAbertoAsync(
-                    estabelecimento.Id, (int)DateTime.Now.DayOfWeek, DateTime.Now.ToString("HH:mm"));
+                    estabelecimento.Id, diaSemanaInt, horaAtualString);
                 estabelecimentos = new List<Estabelecimento> { estabelecimento };
             }
 
@@ -189,7 +291,7 @@ else
             produtos = await ProdutoService.GetProdutosByEstabelecimentoIdAsync(Endpoints.EstabelecimentoID);
         }
         catch (Exception ex) {
-            Console.WriteLine($"Erro ao carregar dados: {ex.Message}");
+            Snackbar.Add("Erro ao carregar dados: " + ex.Message, Severity.Error);
         }
     }
 
@@ -197,10 +299,42 @@ else
         NavigationManager.NavigateTo($"/sobre/{id}");
     }
 
+    private void FilterByCategory(string categoria) {
+        selectedCategory = categoria;
+        NavigationManager.NavigateTo($"/produtos/51?categoria={Uri.EscapeDataString(categoria)}");
+    }
+
     private string GetImageUrl(string? relativePath) {
         if (string.IsNullOrEmpty(relativePath)) {
-            return "https://via.placeholder.com/150";
+            return "https://via.placeholder.com/300x150?text=Imagem+Indisponivel";
         }
         return $"{ApiConstants.BaseUrlImagem}/{relativePath}";
     }
-}
+    
+    private string GetCategoryIcon(string categoria) {
+        return categoria.ToLower() switch {
+            "pizzas" => Icons.Material.Filled.LocalPizza,
+            "bebidas" => Icons.Material.Filled.LocalBar,
+            "sobremesas" => Icons.Material.Filled.Icecream,
+            "lanches" => Icons.Material.Filled.Fastfood,
+            "saladas" => Icons.Material.Filled.EggAlt,
+            "massas" => Icons.Material.Filled.RamenDining,
+            _ => Icons.Material.Filled.Category
+        };
+    }
+    
+    private async Task AddToCart(Cardapio produto)
+    {
+        var carrinhoItem = new CarrinhoItem
+        {
+            ProdutoId = produto.Id,
+            Nome = produto.Nome,
+            Preco = produto.Preco,
+            Quantidade = 1,
+            EstabelecimentoId = Endpoints.EstabelecimentoID
+        };
+
+        await CarrinhoService.AdicionarAoCarrinhoAsync(carrinhoItem);
+        Snackbar.Add($"{produto.Nome} adicionado ao carrinho!", Severity.Success);
+    }
+   }

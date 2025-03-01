@@ -22,7 +22,7 @@
         public double Latitude { get; set; }
         public double Longitude { get; set; }
         public int RaioEntregaKm { get; set; }
-        public decimal TaxaEntregaFixa { get; set; }
+        public decimal? TaxaEntregaFixa { get; set; }
         public string UrlImagem { get; set; }
         public string Descricao { get; set; }
 

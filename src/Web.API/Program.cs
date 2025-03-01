@@ -52,6 +52,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCors();
 builder.Services.Configure<MercadoPagoSettings>(builder.Configuration.GetSection("MercadoPago"));
 builder.Services.AddHttpContextAccessor();
+
 // Configuração do Swagger
 builder.Services.AddSwaggerGen(c =>
 {

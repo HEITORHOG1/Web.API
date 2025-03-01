@@ -1,7 +1,5 @@
 ﻿@page "/finalizar-pedido"
-
 @using MarketplaceHybrid.Shared.Configurations
-@using MudBlazor
 @using MarketplaceHybrid.Shared.Models
 @using MarketplaceHybrid.Shared.Services.Interfaces
 @using System.Net.Http.Json
@@ -14,241 +12,340 @@
 @inject HttpClient HttpClient
 @inject IAuthService AuthService
 @inject IDialogService DialogService
+@inject IEnderecoClienteService EnderecoClienteService
 
-<MudContainer MaxWidth="MaxWidth.Small">
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Default" OnClick="Voltar" />
-        <MudText Typo="Typo.h6" Style="margin-left:16px;">SACOLA</MudText>
-        <MudSpacer />
-        <MudButton Color="Color.Default" OnClick="LimparCarrinho">Limpar</MudButton>
-    </MudAppBar>
+<MudContainer MaxWidth="MaxWidth.Small" Class="py-4">
+    <!-- Checkout Progress -->
+    <CheckoutProgress CurrentStep="2" />
+    
+    @if (isLoading)
+    {
+        <div class="d-flex justify-center my-8">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    else
+    {
+        <MudText Typo="Typo.h5" Class="mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.Payment" Class="mr-2" />
+            Forma de Pagamento
+        </MudText>
+        
+        <!-- Endereço de Entrega Selecionado -->
+        @if (enderecoPrincipal != null)
+        {
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <div class="d-flex justify-space-between align-center mb-2">
+                    <MudText Typo="Typo.subtitle1">Endereço de Entrega</MudText>
+                    <MudButton Variant="Variant.Text" 
+                              Size="Size.Small"
+                              Color="Color.Primary"
+                              OnClick="@(() => NavigationManager.NavigateTo("/endereco-frete"))">
+                        Alterar
+                    </MudButton>
+                </div>
+                
+                <MudDivider Class="mb-3" />
+                
+                <div class="d-flex align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.LocationOn" 
+                            Color="Color.Primary"
+                            Class="mr-2" />
+                    
+                    <div>
+                        <MudText Typo="Typo.body1">
+                            @enderecoPrincipal.Logradouro, @enderecoPrincipal.Numero
+                        </MudText>
+                        <MudText Typo="Typo.body2">
+                            @($"{enderecoPrincipal.Bairro}, {enderecoPrincipal.Cidade} - {enderecoPrincipal.Estado}")
+                        </MudText>
+                        <MudText Typo="Typo.body2">CEP: @enderecoPrincipal.CEP</MudText>
+                        
+                        @if (!string.IsNullOrEmpty(enderecoPrincipal.Complemento))
+                        {
+                            <MudText Typo="Typo.body2">@enderecoPrincipal.Complemento</MudText>
+                        }
+                    </div>
+                </div>
+            </MudPaper>
+        }
+        
+        <!-- Opções de Pagamento -->
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+            <MudText Typo="Typo.subtitle1" Class="mb-3">Forma de Pagamento</MudText>
+            
+            <MudDivider Class="mb-3" />
+            
+            <MudRadioGroup @bind-Value="selectedPaymentMethod" T="FormaPagamento" Class="d-flex flex-column">
+                <div class="payment-option mb-2 pa-3 @(selectedPaymentMethod == FormaPagamento.Pix ? "selected-option" : "")" 
+                    @onclick="@(() => selectedPaymentMethod = FormaPagamento.Pix)">
+                    <div class="d-flex justify-space-between align-center">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.QrCode" Class="mr-3" />
+                            <div>
+                                <MudText Typo="Typo.subtitle2">PIX</MudText>
+                                <MudText Typo="Typo.body2">Pagamento instantâneo</MudText>
+                            </div>
+                        </div>
+                        <MudRadio Value="FormaPagamento.Pix" Color="Color.Primary" />
+                    </div>
+                </div>
+                
+                <div class="payment-option mb-2 pa-3 @(selectedPaymentMethod == FormaPagamento.CartaoCredito ? "selected-option" : "")" 
+                    @onclick="@(() => selectedPaymentMethod = FormaPagamento.CartaoCredito)">
+                    <div class="d-flex justify-space-between align-center">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.CreditCard" Class="mr-3" />
+                            <div>
+                                <MudText Typo="Typo.subtitle2">Cartão de Crédito</MudText>
+                                <MudText Typo="Typo.body2">Visa, Mastercard, Elo, etc.</MudText>
+                            </div>
+                        </div>
+                        <MudRadio Value="FormaPagamento.CartaoCredito" Color="Color.Primary" />
+                    </div>
+                </div>
+                
+                <div class="payment-option mb-2 pa-3 @(selectedPaymentMethod == FormaPagamento.CartaoDebito ? "selected-option" : "")" 
+                    @onclick="@(() => selectedPaymentMethod = FormaPagamento.CartaoDebito)">
+                    <div class="d-flex justify-space-between align-center">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.CreditCard" Class="mr-3" />
+                            <div>
+                                <MudText Typo="Typo.subtitle2">Cartão de Débito</MudText>
+                                <MudText Typo="Typo.body2">Visa, Mastercard, Elo, etc.</MudText>
+                            </div>
+                        </div>
+                        <MudRadio Value="FormaPagamento.CartaoDebito" Color="Color.Primary" />
+                    </div>
+                </div>
+                
+                <div class="payment-option mb-2 pa-3 @(selectedPaymentMethod == FormaPagamento.Dinheiro ? "selected-option" : "")" 
+                    @onclick="@(() => selectedPaymentMethod = FormaPagamento.Dinheiro)">
+                    <div class="d-flex justify-space-between align-center">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Class="mr-3" />
+                            <div>
+                                <MudText Typo="Typo.subtitle2">Dinheiro</MudText>
+                                <MudText Typo="Typo.body2">Pagamento na entrega</MudText>
+                            </div>
+                        </div>
+                        <MudRadio Value="FormaPagamento.Dinheiro" Color="Color.Primary" />
+                    </div>
+                    
+                    @if (selectedPaymentMethod == FormaPagamento.Dinheiro)
+                    {
+                        <div class="ml-8 mt-2">
+                            <MudCheckBox T="bool"
+                                         @bind-Checked="needChange"
+                                         Label="Preciso de troco"
+                                         Color="Color.Primary" />
 
-    <MudText Typo="Typo.h6" Class="mt-4 mb-2">Nona Mania Pizzaria <br /><MudText Typo="Typo.body1" Color="Color.Error">Adicionar mais itens</MudText></MudText>
-
-    <MudPaper Class="pa-4" Elevation="2">
-        <MudText Typo="Typo.h6" Class="mb-2">Pagamento pelo app</MudText>
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div>
-                <div style="display: flex; align-items: center;">
-                    @if (MetodoPagamento == FormaPagamento.CartaoCredito)
-                    {
-                        <MudIcon Icon="@Icons.Custom.Brands.Awesome" Color="Color.Default" Size="Size.Large" />
-                        <div style="margin-left:16px">
-                            <MudText Typo="Typo.body1">Crédito</MudText>
-                            <MudText Typo="Typo.body2">Visa •••• 6138</MudText>
-                        </div>
-                    }
-                    else if (MetodoPagamento == FormaPagamento.CartaoDebito)
-                    {
-                        <MudIcon Icon="@Icons.Custom.Brands.Awesome" Color="Color.Default" Size="Size.Large" />
-                        <div style="margin-left:16px">
-                            <MudText Typo="Typo.body1">Débito</MudText>
-                            <MudText Typo="Typo.body2">Mastercard •••• 5685</MudText>
-                        </div>
-                    }
-                    else if (MetodoPagamento == FormaPagamento.Pix)
-                    {
-                        <MudIcon Icon="@Icons.Material.Filled.Pix" Color="Color.Default" Size="Size.Large" />
-                        <div style="margin-left:16px">
-                            <MudText Typo="Typo.body1">Pix</MudText>
-                        </div>
-                    }
-                    else if (MetodoPagamento == FormaPagamento.Dinheiro)
-                    {
-                        <MudIcon Icon="@Icons.Material.Filled.Money" Color="Color.Default" Size="Size.Large" />
-                        <div style="margin-left:16px">
-                            <MudText Typo="Typo.body1">Dinheiro</MudText>
+                            
+                            @if (needChange)
+                            {
+                                <div class="ml-6 mt-2">
+                                    <MudTextField @bind-Value="changeAmount" 
+                                                Label="Troco para quanto?" 
+                                                Prefix="R$"
+                                                InputType="InputType.Number" 
+                                                Variant="Variant.Outlined" 
+                                                Adornment="Adornment.End"
+                                                AdornmentText="Digite um valor" />
+                                </div>
+                            }
                         </div>
                     }
                 </div>
-            </div>
-            <MudButton Color="Color.Default" OnClick="OpenPaymentDialog">Trocar</MudButton>
+            </MudRadioGroup>
+        </MudPaper>
+        
+        <!-- Resumo do Pedido -->
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+            <MudText Typo="Typo.subtitle1" Class="mb-3">Resumo do Pedido</MudText>
+            
+            <MudDivider Class="mb-3" />
+            
+            @if (carrinho != null && carrinho.Any())
+            {
+                <div class="d-flex flex-column">
+                    @foreach (var item in carrinho)
+                    {
+                        <div class="d-flex justify-space-between mb-2">
+                            <MudText Typo="Typo.body2">@item.Quantidade x @item.Nome</MudText>
+                            <MudText Typo="Typo.body2">R$ @item.Total.ToString("N2")</MudText>
+                        </div>
+                    }
+                    
+                    <MudDivider Class="my-3" />
+                    
+                    <div class="d-flex justify-space-between mb-2">
+                        <MudText Typo="Typo.body1">Subtotal</MudText>
+                        <MudText Typo="Typo.body1">R$ @SubTotal.ToString("N2")</MudText>
+                    </div>
+                    
+                    <div class="d-flex justify-space-between mb-2">
+                        <MudText Typo="Typo.body1">Taxa de entrega</MudText>
+                        <MudText Typo="Typo.body1">
+                            @if (TaxaEntrega > 0)
+                            {
+                                <span>R$ @TaxaEntrega.ToString("N2")</span>
+                            }
+                            else
+                            {
+                                <span class="mud-success-text">Grátis</span>
+                            }
+                        </MudText>
+                    </div>
+                    
+                    <MudDivider Class="my-3" />
+                    
+                    <div class="d-flex justify-space-between align-center">
+                        <MudText Typo="Typo.h6">Total</MudText>
+                        <MudText Typo="Typo.h6" Color="Color.Primary">R$ @ValorTotal.ToString("N2")</MudText>
+                    </div>
+                </div>
+            }
+        </MudPaper>
+        
+        <!-- Botões de Ação -->
+        <div class="d-flex flex-column">
+            <MudButton Variant="Variant.Filled" 
+                      Color="Color.Primary" 
+                      OnClick="FinalizarPagamento"
+                      Disabled="isProcessing || !PodeFinalizarPedido()"
+                      StartIcon="@(isProcessing ? null : Icons.Material.Filled.CheckCircle)"
+                      Size="Size.Large"
+                      Class="py-3 mb-2">
+                @if (isProcessing)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <span class="ms-2">Processando...</span>
+                }
+                else
+                {
+                    <span>Finalizar Pedido - R$ @ValorTotal.ToString("N2")</span>
+                }
+            </MudButton>
+            
+            <MudButton Variant="Variant.Outlined" 
+                      StartIcon="@Icons.Material.Filled.ArrowBack"
+                      OnClick="@(() => NavigationManager.NavigateTo("/endereco-frete"))">
+                Voltar para Endereços
+            </MudButton>
         </div>
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-top:16px;">
-            <div style="display: flex; align-items: center;">
-                <MudIcon Icon="@Icons.Material.Filled.ConfirmationNumber" Color="Color.Default" Size="Size.Medium" />
-                <MudText Typo="Typo.body1" Style="margin-left:16px;">Cupom</MudText>
-            </div>
-            <MudButton Color="Color.Default" OnClick="OpenCupomDialog">Adicionar</MudButton>
-        </div>
-    </MudPaper>
-
-    <MudPaper Class="mt-4 pa-4" Elevation="2">
-        <MudText Typo="Typo.h6" Class="mb-2">Resumo de valores</MudText>
-        <MudGrid>
-            <MudItem xs="6">
-                <MudText Typo="Typo.body1">Subtotal</MudText>
-            </MudItem>
-            <MudItem xs="6" Align="End">
-                <MudText Typo="Typo.body1">R$ @(carrinho.Any() ? carrinho.Sum(x => x.Total).ToString("F2", CultureInfo.InvariantCulture) : "0.00")</MudText>
-            </MudItem>
-            <MudItem xs="6">
-                <MudText Typo="Typo.body1">Taxa de entrega</MudText>
-            </MudItem>
-            <MudItem xs="6" Align="End">
-                <MudText Typo="Typo.body1" Color="Color.Success">Grátis</MudText>
-            </MudItem>
-            <MudItem xs="6">
-                <MudText Typo="Typo.h6">Total</MudText>
-            </MudItem>
-            <MudItem xs="6" Align="End">
-                <MudText Typo="Typo.h6">R$ @(carrinho.Any() ? (carrinho.Sum(x => x.Total)).ToString("F2", CultureInfo.InvariantCulture) : "0.00")</MudText>
-            </MudItem>
-            <MudItem xs="12" Align="End">
-                <MudText Typo="Typo.body1" Color="Color.Secondary" Style="display: flex; align-items: center; justify-content: flex-end;">
-                    Aplique seu cupom e pague
-                    <MudIcon Icon="@Icons.Material.Filled.Diamond" Color="Color.Secondary" Style="margin-left:8px;" />
-                    R$ @(carrinho.Any() ? (carrinho.Sum(x => x.Total)).ToString("F2", CultureInfo.InvariantCulture) : "0.00")
-                </MudText>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
-
-    <MudPaper Class="mt-4 pa-4" Elevation="2" Style="position: fixed; bottom: 0; width: 100%; left: 0; display: flex; justify-content: center; align-items: center;">
-        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="OpenReviewDialog" Style="width: 100%">
-            Revisar pedido • R$ @(carrinho.Any() ? (carrinho.Sum(x => x.Total)).ToString("F2", CultureInfo.InvariantCulture) : "0.00")
-        </MudButton>
-    </MudPaper>
+    }
 </MudContainer>
+
+<style>
+    .payment-option {
+        cursor: pointer;
+        transition: background-color 0.2s;
+        border-radius: 4px;
+    }
+    
+    .payment-option:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+    }
+    
+    .selected-option {
+        background-color: rgba(var(--mud-palette-primary-rgb), 0.05);
+        border: 1px solid rgba(var(--mud-palette-primary-rgb), 0.3);
+    }
+</style>
 
 @code {
     private List<CarrinhoItem> carrinho = new();
     private decimal TaxaEntrega = 0;
-    private decimal TotalComEntrega;
-    private FormaPagamento MetodoPagamento = FormaPagamento.Pix;
-    private bool IsLoading = false;
+    private FormaPagamento selectedPaymentMethod = FormaPagamento.Pix;
+    private bool isLoading = true;
+    private bool isProcessing = false;
+    private bool needChange = false;
+    private string changeAmount = "";
+    private EnderecoClienteDto enderecoPrincipal;
+    
+    private decimal SubTotal => carrinho.Sum(x => x.Total);
+    private decimal ValorTotal => SubTotal + TaxaEntrega;
 
     protected override async Task OnInitializedAsync()
     {
-        await CarregarCarrinho();
+        isLoading = true;
+        
+        try
+        {
+            if (!await AuthService.IsLoggedInAsync())
+            {
+                NavigationManager.NavigateTo($"/login?redirectUri={Uri.EscapeDataString("/finalizar-pedido")}");
+                return;
+            }
+            
+            await CarregarCarrinho();
+            await CarregarTaxaEntrega();
+            await CarregarEnderecoPrincipal();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar dados: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private async Task CarregarCarrinho()
     {
         carrinho = await CarrinhoService.ObterCarrinhoAsync();
-
-        if (!carrinho.Any())
+        if (carrinho == null || !carrinho.Any())
         {
-            Snackbar.Add("Seu carrinho está vazio. Adicione produtos antes de finalizar a compra.", Severity.Warning);
-            return;
-        }
-
-        var estabelecimento = await EstabelecimentoService.GetEstabelecimentoByIdAsync(Endpoints.EstabelecimentoID);
-        if (estabelecimento?.Estabelecimento == null)
-        {
-            Snackbar.Add("Não foi possível carregar as informações do estabelecimento.", Severity.Error);
-            return;
-        }
-        TaxaEntrega = estabelecimento.Estabelecimento.TaxaEntregaFixa;
-        TotalComEntrega = carrinho.Sum(x => x.Total) + TaxaEntrega;
-    }
-
-    private async Task OpenPaymentDialog()
-    {
-        var dialog = await DialogService.ShowAsync<FormaPagamentoDialog>("Selecione a forma de pagamento",
-            new DialogParameters { ["SelectedFormaPagamento"] = MetodoPagamento },
-            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall });
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is FormaPagamento formaPagamento)
-        {
-            MetodoPagamento = formaPagamento;
+            Snackbar.Add("Seu carrinho está vazio", Severity.Warning);
+            NavigationManager.NavigateTo("/");
         }
     }
 
-    private async Task OpenCupomDialog()
+    private async Task CarregarTaxaEntrega()
     {
-        // Implementar lógica para abrir o diálogo de cupom
-        Snackbar.Add("Implementar lógica para abrir o diálogo de cupom", Severity.Info);
-    }
-
-    private async Task OpenReviewDialog()
-    {
-        var dialog = await DialogService.ShowAsync<ReviewPedidoDialog>("Revise seu pedido", new DialogOptions { CloseButton = true });
-        var result = await dialog.Result;
-        if (!result.Canceled)
-        {
-            await FinalizarPagamento();
-        }
-    }
-
-    private async Task FinalizarPagamento()
-    {
-        if (!carrinho.Any())
-        {
-            Snackbar.Add("Seu carrinho está vazio.", Severity.Error);
-            return;
-        }
-
-        IsLoading = true;
-        var pedidoDto = new FinalizarCompraDto
-        {
-            EstabelecimentoId = Endpoints.EstabelecimentoID,
-            EnderecoEntrega = "Endereço preenchido pelo usuário",
-            FormaPagamento = MetodoPagamento,
-            ValorTotal = TotalComEntrega,
-            TaxaEntrega = TaxaEntrega,
-            Itens = carrinho.Select(i => new PedidoItemDto
-            {
-                ProdutoId = i.ProdutoId,
-                Quantidade = i.Quantidade,
-                PrecoUnitario = i.Preco,
-                Subtotal = i.Quantidade * i.Preco
-            }).ToList()
-        };
-
         try
         {
-            var tokenJson = await AuthService.GetTokenAsync();
-            if (string.IsNullOrEmpty(tokenJson))
+            var estabelecimento = await EstabelecimentoService.GetEstabelecimentoByIdAsync(Endpoints.EstabelecimentoID);
+            if (estabelecimento?.Estabelecimento != null)
             {
-                Snackbar.Add("Erro de autenticação. Faça login novamente.", Severity.Warning);
-                IsLoading = false;
-                return;
-            }
+                TaxaEntrega = estabelecimento.Estabelecimento.TaxaEntregaFixa ?? 0m;
 
-            var token = ExtractTokenFromJson(tokenJson);
-            var request = new HttpRequestMessage(HttpMethod.Post, Endpoints.FinalizarPedido)
-            {
-                Content = JsonContent.Create(pedidoDto)
-            };
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-            var response = await HttpClient.SendAsync(request);
-            if (response.IsSuccessStatusCode)
-            {
-                var resultado = await response.Content.ReadFromJsonAsync<PedidoResponse>();
-                if (!string.IsNullOrEmpty(resultado?.PagamentoUrl))
+                // Verificar se o subtotal é maior que 50, se sim, taxa é gratuita
+                if (SubTotal >= 50)
                 {
-                    // Limpar carrinho
-                    await CarrinhoService.LimparCarrinhoAsync();
-
-                    // Armazenar ID do pedido para verificação posterior
-                    await localStorage.SetItemAsync("last_order_id", resultado.PedidoId);
-
-                    // Redirecionar para página de pagamento
-                    NavigationManager.NavigateTo($"/checkout/{Uri.EscapeDataString(resultado.PagamentoUrl)}");
+                    TaxaEntrega = 0;
                 }
-                else
-                {
-                    Snackbar.Add("Erro ao gerar URL de pagamento.", Severity.Error);
-                }
-            }
-            else
-            {
-                Snackbar.Add($"Erro ao finalizar pedido: {response.StatusCode}", Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Erro: {ex.Message}", Severity.Error);
-        }
-        finally
-        {
-            IsLoading = false;
+            Console.WriteLine($"Erro ao carregar a taxa de entrega: {ex.Message}");
         }
     }
 
+    
+    private async Task CarregarEnderecoPrincipal()
+    {
+        var tokenJson = await AuthService.GetTokenAsync();
+        if (string.IsNullOrEmpty(tokenJson))
+        {
+            Snackbar.Add("Erro ao recuperar o token de autenticação. Faça login novamente.", Severity.Warning);
+            return;
+        }
+        
+        var token = ExtractTokenFromJson(tokenJson);
+        
+        var enderecos = await EnderecoClienteService.GetAllByUsuarioIdAsync(token);
+        enderecoPrincipal = enderecos?.FirstOrDefault(e => e.Principal);
+        
+        if (enderecoPrincipal == null)
+        {
+            Snackbar.Add("Selecione um endereço principal para continuar", Severity.Warning);
+            NavigationManager.NavigateTo("/endereco-frete");
+        }
+    }
+    
     private string ExtractTokenFromJson(string tokenJson)
     {
         try
@@ -269,15 +366,111 @@
             return string.Empty;
         }
     }
-
-    private void Voltar()
+    
+    private bool PodeFinalizarPedido()
     {
-        NavigationManager.NavigateTo("/carrinho");
+        if (carrinho == null || !carrinho.Any())
+            return false;
+            
+        if (enderecoPrincipal == null)
+            return false;
+            
+        if (selectedPaymentMethod == FormaPagamento.Dinheiro && needChange)
+        {
+            if (string.IsNullOrEmpty(changeAmount))
+                return false;
+                
+            if (!decimal.TryParse(changeAmount, out decimal value) || value <= ValorTotal)
+                return false;
+        }
+        
+        return true;
     }
-
-    private void LimparCarrinho()
+    
+    private async Task FinalizarPagamento()
     {
-        // CarrinhoService.LimparCarrinho();
-        NavigationManager.NavigateTo("/carrinho");
+        if (!PodeFinalizarPedido())
+        {
+            Snackbar.Add("Verifique os dados e tente novamente", Severity.Warning);
+            return;
+        }
+        
+        isProcessing = true;
+        
+        try
+        {
+            // Obter token de autenticação
+            var tokenJson = await AuthService.GetTokenAsync();
+            var token = ExtractTokenFromJson(tokenJson);
+            
+            if (string.IsNullOrEmpty(token))
+            {
+                Snackbar.Add("Erro de autenticação. Faça login novamente.", Severity.Warning);
+                isProcessing = false;
+                return;
+            }
+            
+            // Formatar o endereço de entrega como string
+            string enderecoEntrega = $"{enderecoPrincipal.Logradouro}, {enderecoPrincipal.Numero}";
+            if (!string.IsNullOrEmpty(enderecoPrincipal.Complemento))
+                enderecoEntrega += $", {enderecoPrincipal.Complemento}";
+            enderecoEntrega += $" - {enderecoPrincipal.Bairro}, {enderecoPrincipal.Cidade} - {enderecoPrincipal.Estado}, {enderecoPrincipal.CEP}";
+            
+            // Criar a requisição de finalização de compra
+            var pedidoDto = new FinalizarCompraDto
+            {
+                EstabelecimentoId = Endpoints.EstabelecimentoID,
+                EnderecoEntrega = enderecoEntrega,
+                FormaPagamento = selectedPaymentMethod,
+                ValorTotal = ValorTotal,
+                TaxaEntrega = TaxaEntrega,
+                Itens = carrinho.Select(i => new PedidoItemDto
+                {
+                    ProdutoId = i.ProdutoId,
+                    Quantidade = i.Quantidade,
+                    PrecoUnitario = i.Preco,
+                    Subtotal = i.Total
+                }).ToList()
+            };
+
+            // Enviar requisição
+            var request = new HttpRequestMessage(HttpMethod.Post, Endpoints.FinalizarPedido)
+            {
+                Content = JsonContent.Create(pedidoDto)
+            };
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var response = await HttpClient.SendAsync(request);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var resultado = await response.Content.ReadFromJsonAsync<PedidoResponse>();
+                if (!string.IsNullOrEmpty(resultado?.PagamentoUrl))
+                {
+                    // Limpar carrinho
+                    await CarrinhoService.LimparCarrinhoAsync();
+
+                    // Redirecionar para página de pagamento
+                    NavigationManager.NavigateTo($"/checkout/{Uri.EscapeDataString(resultado.PagamentoUrl)}");
+                }
+                else
+                {
+                    Snackbar.Add("Erro ao gerar URL de pagamento.", Severity.Error);
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Erro ao finalizar pedido: {errorContent}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isProcessing = false;
+        }
     }
 }

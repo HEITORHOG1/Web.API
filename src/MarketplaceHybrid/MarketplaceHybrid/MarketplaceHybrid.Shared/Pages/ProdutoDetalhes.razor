@@ -5,95 +5,187 @@
 @inject IProdutoService ProdutoService
 @inject ICarrinhoService CarrinhoService
 @inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
 
-<MudPaper Class="p-0 rounded-lg overflow-hidden" Elevation="2">
-    @if (produto != null)
+<MudContainer MaxWidth="MaxWidth.Medium" Class="py-4">
+    @if (isLoading)
     {
-        <div class="d-flex flex-column flex-md-row">
-            <!-- Imagem do produto -->
-            <div class="product-image-container">
-                <MudImage Src="@GetImageUrl(produto.Imagem)" Alt="@produto.Nome" Class="product-image" 
-                         ObjectFit="ObjectFit.Cover" Width="100%" Height="100%"/>
-            </div>
-            
-            <!-- Detalhes do produto -->
-            <div class="pa-4 d-flex flex-column">
-                <MudText Typo="Typo.h4" Class="mb-2">@produto.Nome</MudText>
-                <MudText Typo="Typo.body1" Class="mb-4">@produto.Descricao</MudText>
-                
-                <MudDivider Class="my-3" />
-                
-                <MudText Typo="Typo.h5" Color="Color.Error" Class="mb-4" Style="font-weight:bold">
-                    R$ @produto.Preco.ToString("N2")
-                </MudText>
-                
-                @if (produto.Disponivel && produto.QuantidadeEmEstoque > 0)
-                {
-                    <MudChip Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success">
-                        Disponível (@produto.QuantidadeEmEstoque em estoque)
-                    </MudChip>
-                }
-                else
-                {
-                    <MudChip Icon="@Icons.Material.Filled.Cancel" Color="Color.Error">
-                        Indisponível
-                    </MudChip>
-                }
-                
-                <MudDivider Class="my-4" />
-                
-                <!-- Quantidade -->
-                <MudText Typo="Typo.subtitle1" Class="mb-2">Quantidade:</MudText>
-                <div class="d-flex align-center mb-4">
-                    <MudIconButton Icon="@Icons.Material.Filled.Remove" Color="Color.Error" 
-                                  Disabled="@(quantidade <= 1)" OnClick="DecrementarQuantidade" />
-                    <MudText Typo="Typo.h6" Class="mx-4">@quantidade</MudText>
-                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Error" 
-                                  Disabled="@(quantidade >= produto.QuantidadeEmEstoque)" OnClick="IncrementarQuantidade" />
+        <div class="d-flex flex-column align-center justify-center py-8">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+            <MudText Typo="Typo.subtitle1" Class="mt-4">Carregando produto...</MudText>
+        </div>
+    }
+    else if (erroCarregamento)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-4">
+            Erro ao carregar o produto. Tente novamente.
+            <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="@(() => NavigationManager.NavigateTo("/"))">
+                Voltar para a página inicial
+            </MudButton>
+        </MudAlert>
+    }
+    else if (produto != null)
+    {
+        <MudBreadcrumbs Items="@breadcrumbs" Separator="/" />
+
+        <MudGrid Class="mt-4">
+            <!-- Coluna da Imagem do Produto -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="0" Class="h-100">
+                    <MudCardMedia Image="@GetImageUrl(produto.Imagem)" 
+                                 Height="300" 
+                                 Style="background-size: contain; background-position: center;" />
+                    
+                    @if (produto.Disponivel)
+                    {
+                        <MudOverlay Visible="true" 
+                                   DarkBackground="false" 
+                                   Absolute="true" 
+                                   ZIndex="5"
+                                   Class="align-start justify-end pa-4">
+                            <MudChip T="object"
+                                     Color="Color.Success"
+                                     Size="Size.Small"
+                                     Label="true">
+                                Disponível
+                            </MudChip>
+                        </MudOverlay>
+                    }
+                    else
+                    {
+                        <MudOverlay Visible="true" 
+                                   DarkBackground="false" 
+                                   Absolute="true" 
+                                   ZIndex="5"
+                                   Class="align-start justify-end pa-4">
+                            <MudChip T="object"
+                                     Color="Color.Error"
+                                     Size="Size.Small"
+                                     Label="true">
+                                Indisponível
+                            </MudChip>
+                        </MudOverlay>
+                    }
+                </MudCard>
+            </MudItem>
+
+            <!-- Coluna de Informações e Ações -->
+            <MudItem xs="12" md="6">
+                <div class="d-flex flex-column h-100">
+                    <MudText Typo="Typo.h4" Class="mb-2">@produto.Nome</MudText>
+                    
+                    <MudText Typo="Typo.body1" Class="mb-4 product-description">
+                        @produto.Descricao
+                    </MudText>
+                    
+                    <MudDivider Class="my-3" />
+                    
+                    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-4" Style="font-weight:bold">
+                        R$ @produto.Preco.ToString("N2")
+                    </MudText>
+                    
+                    <!-- Quantidade -->
+                    <MudText Typo="Typo.subtitle1" Style="font-weight:500" Class="mb-2">Quantidade:</MudText>
+                    <div class="d-flex align-center mb-4">
+                        <MudIconButton Icon="@Icons.Material.Filled.Remove" 
+                                     Color="Color.Primary" 
+                                     Size="Size.Medium"
+                                     Disabled="@(quantidade <= 1)" 
+                                     OnClick="DecrementarQuantidade" />
+                                     
+                        <MudText Typo="Typo.h6" Class="mx-6 text-center" Style="min-width: 40px">@quantidade</MudText>
+                        
+                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                     Color="Color.Primary" 
+                                     Size="Size.Medium"
+                                     Disabled="@(quantidade >= produto.QuantidadeEmEstoque)" 
+                                     OnClick="IncrementarQuantidade" />
+                    </div>
+                    
+                    @if (produto.Opcoes != null && produto.Opcoes.Any())
+                    {
+                        <MudExpansionPanels Class="mb-4">
+                            <MudExpansionPanel Text="Opções Disponíveis" IsInitiallyExpanded="true">
+                                @foreach (var opcao in produto.Opcoes)
+                                {
+                                    <MudText Typo="Typo.subtitle1" Class="mt-3 mb-1">
+                                        @opcao.Nome @(opcao.Obrigatorio ? "(Obrigatório)" : "(Opcional)")
+                                    </MudText>
+                                    
+                                    <MudRadioGroup @bind-Value="selectedOptions[opcao.Id]" 
+                                                 Class="ml-4" 
+                                                 Required="@opcao.Obrigatorio">
+                                        @foreach (var valor in opcao.Valores)
+                                        {
+                                            <MudRadio Value="@valor.Id.ToString()" Color="Color.Primary">
+                                                @valor.Descricao 
+                                                @if (valor.PrecoAdicional > 0)
+                                                {
+                                                    <span>(+R$ @valor.PrecoAdicional.ToString("N2"))</span>
+                                                }
+                                            </MudRadio>
+                                        }
+                                    </MudRadioGroup>
+                                }
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    }
+                    
+                    @if (produto.Adicionais != null && produto.Adicionais.Any())
+                    {
+                        <MudExpansionPanels Class="mb-4">
+                            <MudExpansionPanel Text="Adicionais" IsInitiallyExpanded="false">
+                                @foreach (var adicional in produto.Adicionais)
+                                {
+                                    <MudCheckBox T="bool"
+                                                 @bind-Checked="@selectedAdicionais[adicional.Id]"
+                                                 Color="Color.Primary"
+                                                 Label="@($"{adicional.Nome} (+R$ {adicional.Preco.ToString("N2")})")" />
+
+                                }
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    }
+                    
+                    <MudSpacer />
+                    
+                    <!-- Botão adicionar ao carrinho -->
+                    <MudButton Variant="Variant.Filled" 
+                              Color="Color.Primary" 
+                              FullWidth="true" 
+                              OnClick="AdicionarAoCarrinho"
+                              StartIcon="@Icons.Material.Filled.ShoppingCart" 
+                              Size="Size.Large"
+                              Disabled="@(!produto.Disponivel || produto.QuantidadeEmEstoque <= 0 || isAdding)"
+                              Class="mb-2 py-3">
+                        @if (isAdding)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                            <span class="ms-2">Adicionando...</span>
+                        }
+                        else
+                        {
+                            <span>Adicionar - R$ @((quantidade * produto.Preco).ToString("N2"))</span>
+                        }
+                    </MudButton>
+                    
+                    <MudButton Variant="Variant.Outlined" 
+                              FullWidth="true" 
+                              OnClick="@(() => NavigationManager.NavigateTo("/"))"
+                              Class="mt-2">
+                        Continuar Comprando
+                    </MudButton>
                 </div>
-                
-                <!-- Botão adicionar ao carrinho -->
-                <MudButton Variant="Variant.Filled" Color="Color.Error" 
-                          FullWidth="true" OnClick="AdicionarAoCarrinho"
-                          StartIcon="@Icons.Material.Filled.ShoppingCart" Size="Size.Large"
-                          Disabled="@(!produto.Disponivel || produto.QuantidadeEmEstoque <= 0)">
-                    Adicionar - R$ @((quantidade * produto.Preco).ToString("N2"))
-                </MudButton>
-            </div>
-        </div>
+            </MudItem>
+        </MudGrid>
     }
-    else
-    {
-        <div class="d-flex align-center justify-center pa-6">
-            <MudProgressCircular Color="Color.Error" Indeterminate="true" />
-            <MudText Class="ml-3">Carregando produto...</MudText>
-        </div>
-    }
-</MudPaper>
+</MudContainer>
 
 <style>
-    .product-image-container {
-        height: 350px;
-        width: 100%;
-        overflow: hidden;
-    }
-    
-    @media(min-width: 600px) {
-        .product-image-container {
-            width: 40%;
-            height: auto;
-        }
-    }
-    
-    .product-image {
-        transition: transform 0.3s;
-    }
-    
-    .product-image:hover {
-        transform: scale(1.05);
+    .product-description {
+        line-height: 1.6;
     }
 </style>
-
 
 @code {
     [Parameter]
@@ -105,6 +197,11 @@
     private Cardapio? produto;
     private int quantidade = 1;
     private bool erroCarregamento = false;
+    private bool isLoading = true;
+    private bool isAdding = false;
+    private Dictionary<int, string> selectedOptions = new Dictionary<int, string>();
+    private Dictionary<int, bool> selectedAdicionais = new Dictionary<int, bool>();
+    private List<BreadcrumbItem> breadcrumbs = new List<BreadcrumbItem>();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -116,18 +213,60 @@
 
     protected override async Task OnInitializedAsync()
     {
+        isLoading = true;
+        
         try
         {
             produto = await ProdutoService.GetProdutoByIdAsync(EstabelecimentoId, ProdutoId);
+            
             if (produto == null)
             {
                 erroCarregamento = true;
+            }
+            else
+            {
+                // Inicializa as opções e adicionais selecionáveis
+                if (produto.Opcoes != null)
+                {
+                    foreach (var opcao in produto.Opcoes)
+                    {
+                        // Pré-seleciona a primeira opção para itens obrigatórios
+                        if (opcao.Obrigatorio && opcao.Valores.Count > 0)
+                        {
+                            selectedOptions[opcao.Id] = opcao.Valores.First().Id.ToString();
+                        }
+                        else
+                        {
+                            selectedOptions[opcao.Id] = "";
+                        }
+                    }
+                }
+                
+                if (produto.Adicionais != null)
+                {
+                    foreach (var adicional in produto.Adicionais)
+                    {
+                        selectedAdicionais[adicional.Id] = false;
+                    }
+                }
+                
+                // Configura os breadcrumbs
+                breadcrumbs = new List<BreadcrumbItem>
+                {
+                    new BreadcrumbItem("Home", "/"),
+                    new BreadcrumbItem("Cardápio", $"/produtos/{EstabelecimentoId}"),
+                    new BreadcrumbItem(produto.Nome, null, disabled: true)
+                };
             }
         }
         catch (Exception ex)
         {
             erroCarregamento = true;
-            Console.WriteLine($"Erro ao carregar os detalhes do produto: {ex.Message}");
+            Snackbar.Add($"Erro ao carregar o produto: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
         }
     }
 
@@ -149,18 +288,86 @@
 
     private async Task AdicionarAoCarrinho()
     {
-        if (produto != null)
+        if (produto == null) return;
+        
+        // Verifica se todas as opções obrigatórias foram selecionadas
+        if (produto.Opcoes != null)
         {
+            foreach (var opcao in produto.Opcoes.Where(o => o.Obrigatorio))
+            {
+                if (string.IsNullOrEmpty(selectedOptions[opcao.Id]))
+                {
+                    Snackbar.Add($"Por favor, selecione uma opção para: {opcao.Nome}", Severity.Warning);
+                    return;
+                }
+            }
+        }
+        
+        isAdding = true;
+        
+        try
+        {
+            // Calcular preço adicional das opções e adicionais selecionados
+            decimal precoAdicional = 0;
+            
+            // Somar preço das opções selecionadas
+            if (produto.Opcoes != null)
+            {
+                foreach (var opcao in produto.Opcoes)
+                {
+                    if (!string.IsNullOrEmpty(selectedOptions[opcao.Id]))
+                    {
+                        var selectedOptionId = int.Parse(selectedOptions[opcao.Id]);
+                        var selectedValue = opcao.Valores.FirstOrDefault(v => v.Id == selectedOptionId);
+                        
+                        if (selectedValue != null)
+                        {
+                            precoAdicional += selectedValue.PrecoAdicional;
+                        }
+                    }
+                }
+            }
+            
+            // Somar preço dos adicionais selecionados
+            if (produto.Adicionais != null)
+            {
+                foreach (var adicional in produto.Adicionais)
+                {
+                    if (selectedAdicionais.ContainsKey(adicional.Id) && selectedAdicionais[adicional.Id])
+                    {
+                        precoAdicional += adicional.Preco;
+                    }
+                }
+            }
+            
+            // Criar item do carrinho
             var item = new CarrinhoItem
             {
                 ProdutoId = produto.Id,
                 Nome = produto.Nome,
-                Preco = produto.Preco,
-                Quantidade = quantidade
+                Preco = produto.Preco + precoAdicional, // Preço base + adicionais
+                Quantidade = quantidade,
+                EstabelecimentoId = EstabelecimentoId
             };
 
             await CarrinhoService.AdicionarAoCarrinhoAsync(item);
-            Console.WriteLine("Produto adicionado ao carrinho!");
+            
+            Snackbar.Add("Produto adicionado ao carrinho!", Severity.Success);
+            
+            // Redirecionar para o carrinho ou manter na página?
+            if (quantidade > 1 || precoAdicional > 0)
+            {
+                // Se adicionou mais de 1 ou com opções, vá direto para o carrinho
+                NavigationManager.NavigateTo("/carrinho");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao adicionar ao carrinho: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isAdding = false;
         }
     }
 
@@ -168,7 +375,7 @@
     {
         if (string.IsNullOrEmpty(relativePath))
         {
-            return "https://via.placeholder.com/150";
+            return "https://via.placeholder.com/400x300?text=Imagem+Indisponível";
         }
 
         return $"{ApiConstants.BaseUrlImagem}/{relativePath}";

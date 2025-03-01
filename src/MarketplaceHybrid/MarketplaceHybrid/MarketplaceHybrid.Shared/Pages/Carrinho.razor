@@ -6,69 +6,167 @@
 @inject NavigationManager NavigationManager
 @inject IEstabelecimentoService EstabelecimentoService
 @inject IAuthService AuthService
+@inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.Medium">
-    <MudText Typo="Typo.h5">Meu Carrinho</MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="py-4">
+    <MudText Typo="Typo.h5" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Class="mr-2" />
+        Meu Carrinho
+    </MudText>
 
-    @if (carrinho != null && carrinho.Any())
+    @if (isLoading)
     {
-        @foreach (var item in carrinho)
-        {
-            <MudCard>
-                <MudCardContent>
-                    <MudGrid AlignItems="Center" JustifyContent="SpaceBetween">
-                        <MudItem xs="8">
-                            <MudText Typo="Typo.body1"><strong>@item.Nome</strong></MudText>
-                            <MudText Typo="Typo.caption">Quantidade: @item.Quantidade</MudText>
-                        </MudItem>
-                        <MudItem xs="4" Align="End">
-                            <MudText Typo="Typo.body2" Align="Align.Right">
-                                R$ @item.Total.ToString("N2")
-                            </MudText>
-                        </MudItem>
-                    </MudGrid>
-                </MudCardContent>
-            </MudCard>
-        }
-
-        <MudDivider />
-
-        <!-- Taxa de entrega -->
-        <MudGrid AlignItems="Center" JustifyContent="SpaceBetween">
-            <MudItem xs="8">
-                <MudCheckBox T="bool" Label="@LabelTaxaEntrega" @bind-Checked="@IncluirTaxaEntrega" ValueChanged="OnTaxaEntregaChanged" />
-            </MudItem>
-            <MudItem xs="4" Align="End">
-                <MudText Typo="Typo.body2" Align="Align.Right">
-                    R$ @TaxaEntrega.ToString("N2")
-                </MudText>
-            </MudItem>
-        </MudGrid>
-
-
-        <!-- Total Final -->
-        <MudText Typo="Typo.h6" Align="Align.Right">
-            Total Final: R$ @TotalComEntrega.ToString("N2")
-        </MudText>
-
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="FinalizarPedido" FullWidth="true">
-            Finalizar Pedido
-        </MudButton>
+        <div class="d-flex justify-center my-8">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    else if (carrinho == null || !carrinho.Any())
+    {
+        <MudPaper Class="pa-6 mb-4 d-flex flex-column align-center">
+            <MudIcon Icon="@Icons.Material.Filled.RemoveShoppingCart" 
+                     Size="Size.Large" 
+                     Color="Color.Default" 
+                     Class="mb-3" />
+            <MudText Typo="Typo.h6" Align="Align.Center" Class="mb-2">Seu carrinho está vazio</MudText>
+            <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+                Adicione produtos para fazer seu pedido
+            </MudText>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       OnClick="VoltarParaCardapio"
+                       StartIcon="@Icons.Material.Filled.ArrowBack">
+                Explorar Cardápio
+            </MudButton>
+        </MudPaper>
     }
     else
     {
-        <MudText Typo="Typo.body1" Align="Align.Center">Seu carrinho está vazio!</MudText>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="VoltarParaCardapio" FullWidth="true">
-            Voltar para o Cardápio
-        </MudButton>
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+            <MudText Typo="Typo.subtitle1" Class="mb-3">Itens do Pedido</MudText>
+            
+            <MudDivider Class="mb-4" />
+            
+            @foreach (var item in carrinho)
+            {
+                <div class="d-flex align-center py-2 cart-item">
+                    <div class="d-flex flex-grow-1 align-center">
+                        <MudText Typo="Typo.body1" Class="flex-grow-1">
+                            <strong>@item.Nome</strong>
+                        </MudText>
+                        <div class="d-flex align-center mx-4">
+                            <MudIconButton Icon="@Icons.Material.Filled.Remove" 
+                                           Size="Size.Small"
+                                           Color="Color.Default" 
+                                           OnClick="@(() => AtualizarQuantidade(item, -1))" />
+                                           
+                            <MudText Typo="Typo.body1" Class="mx-3">@item.Quantidade</MudText>
+                            
+                            <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                           Size="Size.Small"
+                                           Color="Color.Default" 
+                                           OnClick="@(() => AtualizarQuantidade(item, 1))" />
+                        </div>
+                        <MudText Typo="Typo.body1" Style="min-width: 90px; text-align: right">
+                            R$ @item.Total.ToString("N2")
+                        </MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                       Size="Size.Small"
+                                       Color="Color.Error" 
+                                       OnClick="@(() => RemoverItem(item))"
+                                       Class="ml-2" />
+                    </div>
+                </div>
+                <MudDivider />
+            }
+            
+            <div class="d-flex justify-end mt-4 pt-2">
+                <MudButton Variant="Variant.Text"
+                           StartIcon="@Icons.Material.Filled.DeleteSweep"
+                           Color="Color.Error"
+                           OnClick="ConfirmarLimparCarrinho">
+                    Limpar Carrinho
+                </MudButton>
+            </div>
+        </MudPaper>
+
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+            <MudText Typo="Typo.subtitle1" Class="mb-3">Resumo do Pedido</MudText>
+            
+            <MudDivider Class="mb-3" />
+            
+            <div class="d-flex justify-space-between mb-2">
+                <MudText Typo="Typo.body1">Subtotal</MudText>
+                <MudText Typo="Typo.body1">R$ @TotalCarrinho.ToString("N2")</MudText>
+            </div>
+            
+            <div class="d-flex justify-space-between align-center mb-2">
+                <div class="d-flex align-center">
+                    <MudText Typo="Typo.body1">Taxa de entrega</MudText>
+                    <MudTooltip Text="A taxa pode variar conforme o endereço de entrega">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="ml-1" />
+                    </MudTooltip>
+                </div>
+                <MudText Typo="Typo.body1">
+                    @if (IncluirTaxaEntrega && TaxaEntrega > 0)
+                    {
+                        <span>R$ @TaxaEntrega.ToString("N2")</span>
+                    }
+                    else
+                    {
+                        <span class="mud-success-text">Grátis</span>
+                    }
+                </MudText>
+            </div>
+
+            <MudCheckBox T="bool"
+                         @bind-Checked="@IncluirTaxaEntrega"
+                         Label="Adicionar taxa de entrega"
+                         Color="Color.Primary"
+                         Class="mb-3" />
+            
+            <MudDivider Class="my-3" />
+            
+            <div class="d-flex justify-space-between align-center">
+                <MudText Typo="Typo.h6">Total</MudText>
+                <MudText Typo="Typo.h6" Color="Color.Primary">R$ @TotalComEntrega.ToString("N2")</MudText>
+            </div>
+        </MudPaper>
+
+        <div class="d-flex flex-column">
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       OnClick="FinalizarPedido"
+                       StartIcon="@Icons.Material.Filled.ShoppingBag"
+                       Size="Size.Large"
+                       Class="py-3 mb-2">
+                Finalizar Pedido
+            </MudButton>
+            
+            <MudButton Variant="Variant.Outlined" 
+                       OnClick="VoltarParaCardapio"
+                       StartIcon="@Icons.Material.Filled.ArrowBack">
+                Continuar Comprando
+            </MudButton>
+        </div>
     }
 </MudContainer>
+
+<style>
+    .cart-item {
+        transition: background-color 0.2s;
+    }
+    
+    .cart-item:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+    }
+</style>
 
 @code {
     private List<CarrinhoItem> carrinho = new();
     private decimal TotalCarrinho;
     private decimal TaxaEntrega = 0;
     private bool _incluirTaxaEntrega;
+    private bool isLoading = true;
 
     private bool IncluirTaxaEntrega
     {
@@ -77,19 +175,11 @@
         {
             _incluirTaxaEntrega = value;
             RecalcularTotalComEntrega();
-            Console.WriteLine($"Incluir Taxa de Entrega: {_incluirTaxaEntrega}");
             StateHasChanged();
         }
     }
 
     private decimal TotalComEntrega;
-    private async Task OnTaxaEntregaChanged(bool value)
-    {
-        Console.WriteLine($"Checkbox alterado para: {value}");
-        IncluirTaxaEntrega = value; // Atualiza a propriedade
-        RecalcularTotalComEntrega();
-        StateHasChanged(); // Garante que a interface seja atualizada
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -98,25 +188,112 @@
 
     private async Task CarregarCarrinho()
     {
-        carrinho = await CarrinhoService.ObterCarrinhoAsync();
-        TotalCarrinho = carrinho.Sum(x => x.Total);
-
-        var estabelecimento = await EstabelecimentoService.GetEstabelecimentoByIdAsync(51);
-        if (estabelecimento?.Estabelecimento != null)
+        isLoading = true;
+        
+        try
         {
-            TaxaEntrega = estabelecimento.Estabelecimento.TaxaEntregaFixa;
-        }
+            carrinho = await CarrinhoService.ObterCarrinhoAsync();
+            TotalCarrinho = carrinho.Sum(x => x.Total);
 
-        RecalcularTotalComEntrega();
+            var estabelecimento = await EstabelecimentoService.GetEstabelecimentoByIdAsync(Endpoints.EstabelecimentoID);
+            if (estabelecimento?.Estabelecimento != null)
+            {
+                TaxaEntrega = estabelecimento.Estabelecimento.TaxaEntregaFixa.GetValueOrDefault(0m);
+
+                // Configuração inicial - se o total for maior que 50, não cobra taxa
+                IncluirTaxaEntrega = TotalCarrinho < 50;
+            }
+
+            RecalcularTotalComEntrega();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar carrinho: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private void RecalcularTotalComEntrega()
     {
         TotalComEntrega = TotalCarrinho + (IncluirTaxaEntrega ? TaxaEntrega : 0);
-        Console.WriteLine($"Total Atualizado: {TotalComEntrega}"); // Debug
     }
 
-    private string LabelTaxaEntrega => $"Incluir taxa de entrega (R$ {TaxaEntrega.ToString("N2")})";
+    private async Task AtualizarQuantidade(CarrinhoItem item, int alteracao)
+    {
+        var novaQuantidade = item.Quantidade + alteracao;
+        
+        if (novaQuantidade <= 0)
+        {
+            await RemoverItem(item);
+            return;
+        }
+        
+        // Cria um DTO para atualizar a quantidade
+        var itemDto = new AtualizarQuantidadeDto
+        {
+            ProdutoId = item.ProdutoId,
+            EstabelecimentoId = item.EstabelecimentoId,
+            Quantidade = alteracao // Passa apenas a alteração, não a quantidade total
+        };
+        
+        try
+        {
+            await CarrinhoService.AtualizarCarrinhoAsync(itemDto);
+            await CarregarCarrinho(); // Recarrega o carrinho para atualizar totais
+            Snackbar.Add("Carrinho atualizado", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao atualizar carrinho: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task RemoverItem(CarrinhoItem item)
+    {
+        bool? confirmacao = await DialogService.ShowMessageBox(
+            "Remover item",
+            "Deseja remover este item do carrinho?",
+            "Sim", "Não", null);
+            
+        if (confirmacao == true)
+        {
+            try
+            {
+                await CarrinhoService.RemoverDoCarrinhoAsync(item.ProdutoId);
+                await CarregarCarrinho();
+                Snackbar.Add("Item removido do carrinho", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Erro ao remover item: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task ConfirmarLimparCarrinho()
+    {
+        bool? confirmacao = await DialogService.ShowMessageBox(
+            "Limpar carrinho",
+            "Tem certeza que deseja remover todos os itens do carrinho?",
+            "Sim", "Não", null);
+            
+        if (confirmacao == true)
+        {
+            try
+            {
+                await CarrinhoService.LimparCarrinhoAsync();
+                await CarregarCarrinho();
+                Snackbar.Add("Carrinho limpo com sucesso", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Erro ao limpar carrinho: {ex.Message}", Severity.Error);
+            }
+        }
+    }
 
     private void VoltarParaCardapio()
     {
@@ -125,14 +302,20 @@
 
     private async Task FinalizarPedido()
     {
-        if (!await AuthService.IsLoggedInAsync())
+        if (!carrinho.Any())
         {
-            NavigationManager.NavigateTo("/login");
+            Snackbar.Add("Adicione produtos ao carrinho antes de finalizar o pedido", Severity.Warning);
             return;
         }
 
-        Console.WriteLine($"Pedido finalizado! Total: R$ {TotalComEntrega.ToString("N2")}");
-        NavigationManager.NavigateTo("/finalizar-pedido");
+        if (!await AuthService.IsLoggedInAsync())
+        {
+            Snackbar.Add("Faça login para finalizar o pedido", Severity.Info);
+            NavigationManager.NavigateTo($"/login?redirectUri={Uri.EscapeDataString("/endereco-frete")}");
+            return;
+        }
+
+        NavigationManager.NavigateTo("/endereco-frete");
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -141,7 +324,9 @@
         {
             CarrinhoService.MarcarComoInicializado();
             await CarregarCarrinho();
-            StateHasChanged(); // Atualizar a interface
+            StateHasChanged();
         }
     }
+    
+    [Inject] private IDialogService DialogService { get; set; }
 }

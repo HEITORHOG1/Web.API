@@ -16,5 +16,6 @@ namespace MarketplaceHybrid.Shared.Services.Interfaces
 
         void MarcarComoInicializado();
         event Func<Task> CarrinhoAtualizado;
+        Task AtualizarCarrinhoAsync(AtualizarQuantidadeDto itemDto);
     }
 }

@@ -106,5 +106,18 @@ namespace MarketplaceHybrid.Shared.Services
         {
             _isInitialized = true; // Marcar que o JavaScript está disponível
         }
+
+        public async Task AtualizarCarrinhoAsync(AtualizarQuantidadeDto itemDto)
+        {
+            var carrinho = await ObterCarrinhoAsync();
+            var item = carrinho.FirstOrDefault(x => x.ProdutoId == itemDto.ProdutoId && x.EstabelecimentoId == itemDto.EstabelecimentoId);
+
+            if (item != null)
+            {
+                item.Quantidade += itemDto.Quantidade;
+                await SalvarCarrinhoAsync(carrinho);
+                await CarrinhoAtualizado?.Invoke();
+            }
+        }
     }
 }

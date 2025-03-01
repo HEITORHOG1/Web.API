@@ -7,50 +7,66 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudThemeProvider Theme="AppTheme.DefaultTheme" />
-<MudLayout>
-    <MudAppBar Elevation="0" Color="Color.Error" Dense="true">
-        <!-- Botão de Menu -->
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@DrawerToggle" />
 
-        <!-- Título do Marketplace -->
-        <MudText Typo="Typo.h6" Class="ml-2">Marketplace</MudText>
+<MudLayout>
+    <MudAppBar Elevation="0" Color="Color.Primary" Dense="true" Fixed="true" Class="px-2">
+        <!-- Menu Button visible on all screens -->
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
+
+        <!-- Marketplace Title -->
+        <MudText Typo="Typo.h6" Class="ml-2 cursor-pointer" @onclick="@(() => NavigationManager.NavigateTo("/"))">Marketplace</MudText>
 
         <MudSpacer />
 
-        <!-- Nome do Usuário e Menu -->
+        <!-- User menu - only visible on medium+ screens -->
         @if (IsLoggedIn)
         {
-            <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" Dense="true">
+            <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" Dense="true" Class="d-none d-md-inline-flex">
                 <MudMenuItem Class="px-2 py-1">Olá, @Username</MudMenuItem>
                 <MudDivider />
                 <MudMenuItem OnClick="IrParaPerfil" Class="px-2 py-1">Meu Perfil</MudMenuItem>
                 <MudMenuItem OnClick="Logout" Class="px-2 py-1">Sair</MudMenuItem>
             </MudMenu>
         }
+        else
+        {
+            <MudButton Color="Color.Inherit" OnClick="@(() => NavigationManager.NavigateTo("/login"))" Class="d-none d-md-inline-flex">
+                Entrar
+            </MudButton>
+        }
 
-        <!-- Ícone do Carrinho com Badge -->
-        <MudBadge Content="@TotalItensCarrinho" Color="Color.Secondary" Overlap="true" Bordered="true">
+        <!-- Cart Icon with Badge -->
+        <MudBadge Content="@TotalItensCarrinho" Color="Color.Secondary" Overlap="true" Bordered="true" Class="mx-2">
             <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Inherit" OnClick="IrParaCarrinho" />
         </MudBadge>
     </MudAppBar>
 
-    <!-- Drawer (Menu Lateral) -->
-    <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Never" Variant="@DrawerVariant.Mini"
-               Breakpoint="Breakpoint.Sm" PreserveOpenState="true">
+    <!-- Drawer (Side Menu) - Responsive behavior -->
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="1" ClipMode="DrawerClipMode.Always"
+               Variant="@DrawerVariant.Responsive" Breakpoint="Breakpoint.Md">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Menu</MudText>
+        </MudDrawerHeader>
         <NavMenu />
     </MudDrawer>
 
-    <!-- Conteúdo Principal -->
-    <MudMainContent Class="pt-2 pb-16">
-        <MudContainer MaxWidth="MaxWidth.Medium" Class="px-2">
+    <!-- Main Content with appropriate padding for fixed navbar -->
+    <MudMainContent Class="pt-16 pb-16">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="py-4 px-2">
             @Body
         </MudContainer>
 
-        <!-- Bottom Navigation para Mobile -->
-        <MudPaper Elevation="4" Class="d-flex justify-center align-center mud-width-full py-2 px-1 fixed-bottom bottom-nav d-md-none">
+        <!-- Bottom Navigation for Mobile (hidden on md+ screens) -->
+        <MudPaper Elevation="4" Class="d-flex justify-space-between align-center mud-width-full py-2 px-1 fixed-bottom bottom-nav d-md-none">
             <MudIconButton Icon="@Icons.Material.Filled.Home" Color="Color.Inherit" OnClick="@(() => NavigationManager.NavigateTo("/"))" />
-            <MudIconButton Icon="@Icons.Material.Filled.Search" Color="Color.Inherit" />
-            <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Inherit" OnClick="IrParaCarrinho" />
+            <MudIconButton Icon="@Icons.Material.Filled.Search" Color="Color.Inherit" OnClick="@(() => NavigationManager.NavigateTo("/search"))" />
+            <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Inherit" OnClick="IrParaCarrinho"
+                           Class="position-relative">
+                @if (TotalItensCarrinho > 0)
+                {
+                    <span class="cart-badge">@TotalItensCarrinho</span>
+                }
+            </MudIconButton>
             <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Inherit" OnClick="IrParaPerfil" />
         </MudPaper>
     </MudMainContent>
@@ -60,19 +76,51 @@
     .bottom-nav {
         height: 56px;
         z-index: 1000;
+        background-color: #ffffff;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .cart-badge {
+        position: absolute;
+        top: 0;
+        right: 0;
         background-color: #ea1d2c;
+        color: white;
+        border-radius: 50%;
+        padding: 0 4px;
+        font-size: 10px;
+        min-width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .mud-appbar {
-        background-color: #ea1d2c !important;
+    .cursor-pointer {
+        cursor: pointer;
     }
 
-    .mud-button-filled.mud-button-filled-primary {
-        background-color: #ea1d2c !important;
+    /* Make sure we don't get stuck in a closed drawer state */
+    .mud-drawer-open {
+        width: 250px !important;
     }
 
-        .mud-button-filled.mud-button-filled-primary:hover {
-            background-color: #c1121f !important;
+    /* Adjust drawer items spacing */
+    ::deep .mud-nav-link {
+        padding: 12px 16px;
+        border-radius: 4px;
+        margin: 2px 8px;
+        transition: all 0.2s ease-in-out;
+    }
+
+        ::deep .mud-nav-link.active {
+            background-color: rgba(234, 29, 44, 0.1) !important;
+            color: #ea1d2c !important;
+            border-right: 3px solid #ea1d2c;
+        }
+
+        ::deep .mud-nav-link:hover {
+            background-color: rgba(234, 29, 44, 0.05) !important;
         }
 </style>
 
@@ -96,14 +144,19 @@
         CarrinhoService.CarrinhoAtualizado += AtualizarTotalItensCarrinho;
     }
 
+    private void ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
     private async Task CarregarTaxaEntrega()
     {
         try
         {
-            var estabelecimento = await EstabelecimentoService.GetEstabelecimentoByIdAsync(51);
+            var estabelecimento = await EstabelecimentoService.GetEstabelecimentoByIdAsync(Endpoints.EstabelecimentoID);
             if (estabelecimento?.Estabelecimento != null)
             {
-                TaxaEntrega = estabelecimento.Estabelecimento.TaxaEntregaFixa;
+                TaxaEntrega = estabelecimento.Estabelecimento.TaxaEntregaFixa ?? 0m;
             }
         }
         catch (Exception ex)
@@ -119,11 +172,6 @@
         StateHasChanged();
     }
 
-    private void DrawerToggle()
-    {
-        _drawerOpen = !_drawerOpen;
-    }
-
     private void IrParaCarrinho()
     {
         NavigationManager.NavigateTo("/carrinho");
@@ -131,7 +179,10 @@
 
     private void IrParaPerfil()
     {
-        NavigationManager.NavigateTo("/perfil");
+        if (IsLoggedIn)
+            NavigationManager.NavigateTo("/perfil");
+        else
+            NavigationManager.NavigateTo("/login");
     }
 
     private async Task Logout()
@@ -155,15 +206,13 @@
         CarrinhoService.CarrinhoAtualizado -= AtualizarTotalItensCarrinho;
     }
 
-    private decimal TotalComEntrega => TotalItensCarrinho * TaxaEntrega; // Exemplo de cálculo
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             CarrinhoService.MarcarComoInicializado();
             await AtualizarTotalItensCarrinho();
-            StateHasChanged(); // Atualizar a interface
+            StateHasChanged();
         }
     }
 }

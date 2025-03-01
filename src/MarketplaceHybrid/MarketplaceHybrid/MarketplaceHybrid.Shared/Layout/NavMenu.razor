@@ -1,9 +1,11 @@
-﻿<MudNavMenu Class="py-3">
+﻿@using MarketplaceHybrid.Shared.Services.Interfaces
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<MudNavMenu Class="py-2 px-1">
     <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
         Home
     </MudNavLink>
-
-    <MudDivider Class="my-2" />
 
     <MudNavLink Href="/sobre/51" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Info">
         Sobre a Loja
@@ -13,27 +15,51 @@
         Meu Carrinho
     </MudNavLink>
 
-    <MudNavLink Href="/endereco-frete" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.LocationOn">
-        Meus Endereços
-    </MudNavLink>
+    @if (IsLoggedIn)
+    {
+        <MudNavLink Href="/endereco-frete" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.LocationOn">
+            Meus Endereços
+        </MudNavLink>
 
-    <MudNavLink Href="/finalizar-pedido" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Payment">
-        Pagamento
-    </MudNavLink>
+        <MudNavLink Href="/pedidos" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Receipt">
+            Meus Pedidos
+        </MudNavLink>
+
+        <MudNavLink Href="/perfil" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Person">
+            Meu Perfil
+        </MudNavLink>
+
+        <MudDivider Class="my-2" />
+
+        <MudNavLink OnClick="Logout" Icon="@Icons.Material.Filled.ExitToApp">
+            Sair
+        </MudNavLink>
+    }
+    else
+    {
+        <MudDivider Class="my-2" />
+
+        <MudNavLink Href="/login" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Login">
+            Entrar
+        </MudNavLink>
+
+        <MudNavLink Href="/cadastro" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PersonAdd">
+            Cadastrar
+        </MudNavLink>
+    }
 </MudNavMenu>
 
-<style>
-    .mud-nav-link.active {
-        background-color: rgba(234, 29, 44, 0.1) !important;
-        color: #ea1d2c !important;
-        border-right: 3px solid #ea1d2c;
+@code {
+    private bool IsLoggedIn = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoggedIn = await AuthService.IsLoggedInAsync();
     }
 
-    .mud-nav-link:hover {
-        background-color: rgba(234, 29, 44, 0.05) !important;
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+        NavigationManager.NavigateTo("/", true);
     }
-
-    .mud-nav-link.mud-nav-link-disabled {
-        color: rgba(0, 0, 0, 0.38) !important;
-    }
-</style>
+}

@@ -43,6 +43,8 @@ builder.Services.AddScoped<ICarrinhoService, CarrinhoService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IHorarioFuncionamentoService, HorarioFuncionamentoService>();
 builder.Services.AddScoped<IEnderecoClienteService, EnderecoClienteService>();
+builder.Services.AddScoped<IPedidoService, PedidoService>();
+builder.Services.AddScoped<ILocalStorageService, LocalStorageService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

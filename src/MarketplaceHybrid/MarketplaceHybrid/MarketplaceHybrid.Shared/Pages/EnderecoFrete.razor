@@ -1,6 +1,4 @@
 ﻿@page "/endereco-frete"
-@using MudBlazor
-@using System.Globalization
 @using MarketplaceHybrid.Shared.Services.Interfaces
 @using MarketplaceHybrid.Shared.Models
 @using System.Text.Json
@@ -8,85 +6,243 @@
 @inject NavigationManager NavigationManager
 @inject IEnderecoClienteService EnderecoClienteService
 @inject ISnackbar Snackbar
+@inject ICarrinhoService CarrinhoService
 
-<h3>EnderecoFrete</h3>
+<MudContainer MaxWidth="MaxWidth.Small" Class="py-4">
+    <!-- Checkout Progress -->
+    <CheckoutProgress CurrentStep="1" />
 
-<MudContainer MaxWidth="MaxWidth.Small">
-    @* Top Bar/Header *@
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Default" />
-        <MudText Typo="Typo.h6" Style="margin-left:16px;">SACOLA</MudText>
-        <MudSpacer />
-        <MudButton Color="Color.Default">Limpar</MudButton>
-    </MudAppBar>
-    <MudPaper Class="mt-4 pa-4" Elevation="2">
-        <MudText Typo="Typo.h6" Class="mb-2">Entregar no endereço</MudText>
+    @if (isLoading)
+    {
+        <div class="d-flex justify-center my-8">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    else
+    {
+        <MudText Typo="Typo.h5" Class="mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.LocationOn" Class="mr-2" />
+            Endereço de Entrega
+        </MudText>
+
         @if (enderecos != null && enderecos.Any())
         {
-            @foreach (var endereco in enderecos)
-            {
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px;
-                               @(endereco.Principal ? "color: red;" : "")">
-                    <div>
-                        <div style="display:flex; align-items:center;">
-                            <MudIcon Icon="@Icons.Material.Filled.LocationOn" Color="@(endereco.Principal ? Color.Error : Color.Default)" Class="mr-2" />
-                            <MudText Typo="Typo.body1" Color="@(endereco.Principal ? Color.Error : Color.Default)">@endereco.Logradouro</MudText>
-                            @if (endereco.Principal)
-                            {
-                                <MudText Typo="Typo.body2" Inline="true" Color="Color.Error" Style="margin-left:8px">Endereço Principal</MudText>
-                            }
-                        </div>
-                        <MudText Typo="Typo.body2" Class="ml-6" Color="@(endereco.Principal ? Color.Error : Color.Default)">@($"{endereco.Bairro} - {endereco.Complemento}")</MudText>
-                    </div>
-                    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Default" @onclick="() => SetPrincipalAndNavigate(endereco.Id)" />
-                </div>
-            }
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudList T="object" Clickable="true">
+                    @foreach (var endereco in enderecos)
+                    {
+                        <MudListItem OnClick="@(() => SetPrincipalAndNavigate(endereco.Id))" Class="pa-0">
+                            <!-- Conteúdo do item -->
+                            Class="pa-0">
+                            <div class="pa-3 mb-1 @(endereco.Principal ? "selected-address" : "")">
+                                <div class="d-flex align-center justify-space-between">
+                                    <div class="d-flex align-center">
+                                        <MudIcon Icon="@Icons.Material.Filled.LocationOn" 
+                                        Color="@(endereco.Principal ? Color.Primary : Color.Default)" 
+                                        Class="mr-2" />
 
+                                        <div>
+                                            <MudText Typo="Typo.subtitle1">
+                                                @endereco.Logradouro, @endereco.Numero
+                                            </MudText>
+                                            <MudText Typo="Typo.body2">
+                                                @($"{endereco.Bairro}, {endereco.Cidade} - {endereco.Estado}")
+                                            </MudText>
+                                            <MudText Typo="Typo.body2">CEP: @endereco.CEP</MudText>
+
+                                            @if (!string.IsNullOrEmpty(endereco.Complemento))
+                                            {
+                                                <MudText Typo="Typo.body2">@endereco.Complemento</MudText>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex align-center">
+                                        @if (endereco.Principal)
+                                        {
+                                            <MudChip T="object" Color="Color.Primary" Size="Size.Small">Selecionado</MudChip>
+
+                                        }
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                       Size="Size.Small"
+                                                       OnClick="@((e) => { EditarEndereco(endereco.Id); })" />
+
+                                    </div>
+                                </div>
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+
+                <div class="d-flex justify-center mt-4">
+                    <MudButton Variant="Variant.Outlined" 
+                    Color="Color.Primary"
+                    StartIcon="@Icons.Material.Filled.Add"
+                    OnClick="NavigateToCadastrarEndereco">
+                        Adicionar Novo Endereço
+                    </MudButton>
+                </div>
+            </MudPaper>
         }
         else
         {
-            <MudText Typo="Typo.body1" Class="mb-2">Nenhum endereço de entrega cadastrado.</MudText>
-            <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" @onclick="NavigateToCadastrarEndereco">Cadastrar Endereço</MudButton>
-        }
-    </MudPaper>
-
-    @* Delivery Options Section *@
-    @if (enderecos != null && enderecos.Any())
-    {
-        <MudPaper Class="mt-4 pa-4" Elevation="2">
-            <MudText Typo="Typo.h6" Class="mb-2">Opções de entrega <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" Color="Color.Default" /></MudText>
-            <MudPaper Class="pa-2" Style="border:1px solid gray;">
-                <div style="display:flex; align-items:center; justify-content:space-between;">
-                    <div>
-                        <MudText Typo="Typo.body1">Padrão</MudText>
-                        <MudText Typo="Typo.body2">Hoje, 40 - 50min</MudText>
-                    </div>
-                    <div style="display:flex; align-items:center;">
-                        <MudText Typo="Typo.body1" Color="Color.Success">Grátis</MudText>
-                        <MudRadio T="bool" Color="Color.Error" Checked="true" Size="Size.Small" />
-                    </div>
-                </div>
+            <MudPaper Class="pa-6 mb-4 d-flex flex-column align-center">
+                <MudIcon Icon="@Icons.Material.Filled.LocationOff" 
+                Size="Size.Large" 
+                Color="Color.Default" 
+                Class="mb-3" />
+                <MudText Typo="Typo.h6" Align="Align.Center" Class="mb-2">
+                    Nenhum endereço cadastrado
+                </MudText>
+                <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+                    Cadastre um endereço para continuar
+                </MudText>
+                <MudButton Variant="Variant.Filled" 
+                Color="Color.Primary" 
+                OnClick="NavigateToCadastrarEndereco"
+                StartIcon="@Icons.Material.Filled.Add">
+                    Cadastrar Endereço
+                </MudButton>
             </MudPaper>
-        </MudPaper>
+        }
+
+        @if (enderecos != null && enderecos.Any() && selectedEnderecoId > 0)
+        {
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudText Typo="Typo.subtitle1" Class="mb-3">Opções de Entrega</MudText>
+
+                <MudList T="EnderecoClienteDto" Clickable="true">
+                    @foreach (var endereco in enderecos)
+                    {
+                        <MudListItem OnClick="@(() => SetPrincipalAndNavigate(endereco.Id))" Class="pa-0">
+                            <!-- Conteúdo do item -->
+                            <div class="pa-2 delivery-option @(selectedEntregaOption == 0 ? "selected-option" : "")">
+                                <div class="d-flex justify-space-between align-center">
+                                    <div>
+                                        <MudText Typo="Typo.subtitle2">Padrão</MudText>
+                                        <MudText Typo="Typo.body2">Hoje, 40-50 min</MudText>
+                                    </div>
+                                    <div class="d-flex align-center">
+                                        <MudText Typo="Typo.body2" Class="mr-2" Color="Color.Success">Grátis</MudText>
+                                        <MudRadio T="int" Color="Color.Primary" 
+                                        Value="0" 
+                                        Checked="selectedEntregaOption == 0"
+                                        CheckedChanged="@(() => selectedEntregaOption = 0)" />
+                                    </div>
+                                </div>
+                            </div>
+                        </MudListItem>
+
+                        <MudListItem OnClick="@(() => selectedEntregaOption = 1)">
+                            <div class="pa-2 delivery-option @(selectedEntregaOption == 1 ? "selected-option" : "")">
+                                <div class="d-flex justify-space-between align-center">
+                                    <div>
+                                        <MudText Typo="Typo.subtitle2">Express</MudText>
+                                        <MudText Typo="Typo.body2">Hoje, 20-30 min</MudText>
+                                    </div>
+                                    <div class="d-flex align-center">
+                                        <MudText Typo="Typo.body2" Class="mr-2">R$ 5,99</MudText>
+                                        <MudRadio T="int" Color="Color.Primary" 
+                                        Value="1" 
+                                        Checked="selectedEntregaOption == 1"
+                                        CheckedChanged="@(() => selectedEntregaOption = 1)" />
+                                    </div>
+                                </div>
+                            </div>
+                        </MudListItem>
+                    }
+                        </MudList>
+                   
+            </MudPaper>
+        }
+        
+        <!-- Resumo e botões de ação -->
+        <div class="d-flex flex-column">
+            @if (enderecos != null && enderecos.Any() && carrinho != null && carrinho.Any())
+            {
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary" 
+                          OnClick="FinalizarPedido"
+                          Disabled="!EnderecoPrincipalSelecionado()"
+                          StartIcon="@Icons.Material.Filled.ShoppingBag"
+                          Size="Size.Large"
+                          Class="py-3 mb-2">
+                    Continuar para Pagamento
+                </MudButton>
+            }
+            
+            <MudButton Variant="Variant.Outlined" 
+                      StartIcon="@Icons.Material.Filled.ArrowBack"
+                      OnClick="@(() => NavigationManager.NavigateTo("/carrinho"))">
+                Voltar para o Carrinho
+            </MudButton>
+        </div>
     }
-    <MudPaper Class="mt-4 pa-4" Elevation="2" Style="position:fixed; bottom:0; width:100%; left:0; display: flex; justify-content: space-between; align-items: center;">
-        <MudText Typo="Typo.body1">Total com entrega grátis <br /> R$ @Total.ToString("F2", CultureInfo.InvariantCulture) / 1 item</MudText>
-        <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Error" OnClick="FinalizarPedido">Continuar</MudButton>
-    </MudPaper>
 </MudContainer>
+
+<style>
+    .selected-address {
+        border-left: 3px solid var(--mud-palette-primary);
+        background-color: rgba(var(--mud-palette-primary-rgb), 0.05);
+    }
+    
+    .delivery-option {
+        transition: background-color 0.2s;
+        border-radius: 4px;
+    }
+    
+    .delivery-option:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+    }
+    
+    .selected-option {
+        background-color: rgba(var(--mud-palette-primary-rgb), 0.05);
+        border: 1px solid rgba(var(--mud-palette-primary-rgb), 0.3);
+    }
+</style>
+
 @code {
     private List<EnderecoClienteDto>? enderecos;
-    private decimal Total { get; set; } = 123.85m;
+    private List<CarrinhoItem>? carrinho;
+    private bool isLoading = true;
+    private int selectedEnderecoId = 0;
+    private int selectedEntregaOption = 0;
 
     protected override async Task OnInitializedAsync()
     {
-        if (!await AuthService.IsLoggedInAsync())
+        isLoading = true;
+        
+        try
         {
-            NavigationManager.NavigateTo($"/login?redirectUri=/endereco-frete");
-            return;
+            if (!await AuthService.IsLoggedInAsync())
+            {
+                NavigationManager.NavigateTo($"/login?redirectUri={Uri.EscapeDataString("/endereco-frete")}");
+                return;
+            }
+            
+            await LoadAddresses();
+            await LoadCarrinho();
         }
-        await LoadAddresses();
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar dados: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
+    
+    private async Task LoadCarrinho()
+    {
+        carrinho = await CarrinhoService.ObterCarrinhoAsync();
+        if (carrinho == null || !carrinho.Any())
+        {
+            Snackbar.Add("Seu carrinho está vazio. Adicione produtos antes de selecionar o endereço de entrega.", Severity.Warning);
+            NavigationManager.NavigateTo("/");
+        }
+    }
+    
     private async Task LoadAddresses()
     {
         var tokenJson = await AuthService.GetTokenAsync();
@@ -95,6 +251,7 @@
             Snackbar.Add("Erro ao recuperar o token de autenticação. Faça login novamente.", Severity.Warning);
             return;
         }
+        
         var token = ExtractTokenFromJson(tokenJson);
         if (string.IsNullOrEmpty(token))
         {
@@ -107,12 +264,25 @@
         if (response != null)
         {
             enderecos = response.ToList();
+            
+            // Verifica se há um endereço principal
+            var enderecoPrincipal = enderecos.FirstOrDefault(e => e.Principal);
+            if (enderecoPrincipal != null)
+            {
+                selectedEnderecoId = enderecoPrincipal.Id;
+            }
+            else if (enderecos.Any())
+            {
+                // Se não houver um principal mas existirem endereços, seleciona o primeiro
+                selectedEnderecoId = enderecos.First().Id;
+            }
         }
         else
         {
             Snackbar.Add("Erro ao buscar endereços", Severity.Error);
         }
     }
+    
     private async Task SetPrincipalAndNavigate(int enderecoId)
     {
         var tokenJson = await AuthService.GetTokenAsync();
@@ -121,17 +291,24 @@
             Snackbar.Add("Erro ao recuperar o token de autenticação. Faça login novamente.", Severity.Warning);
             return;
         }
+        
         var token = ExtractTokenFromJson(tokenJson);
         if (string.IsNullOrEmpty(token))
         {
             Snackbar.Add("Token de autenticação inválido. Faça login novamente.", Severity.Warning);
             return;
         }
+        
+        selectedEnderecoId = enderecoId;
+        
         if (enderecos != null && enderecos.Any())
         {
             foreach (var endereco in enderecos)
             {
-                var enderecoDto = new EnderecoClienteDto
+                if (endereco.Id == enderecoId && !endereco.Principal)
+                {
+                    // Atualiza o endereço para principal
+                    var enderecoDto = new EnderecoClienteDto
                     {
                         Id = endereco.Id,
                         Logradouro = endereco.Logradouro,
@@ -141,15 +318,24 @@
                         Cidade = endereco.Cidade,
                         Estado = endereco.Estado,
                         CEP = endereco.CEP,
-                        Principal = endereco.Id == enderecoId
+                        Principal = true
                     };
-                await EnderecoClienteService.UpdateEnderecoAsync(enderecoDto, token);
-
+                    
+                    await EnderecoClienteService.UpdateEnderecoAsync(enderecoDto, token);
+                    
+                    Snackbar.Add("Endereço selecionado como principal", Severity.Success);
+                    await LoadAddresses();
+                    return;
+                }
             }
         }
-        await LoadAddresses();
-        
     }
+    
+    private bool EnderecoPrincipalSelecionado()
+    {
+        return enderecos != null && enderecos.Any(e => e.Principal);
+    }
+    
     private string ExtractTokenFromJson(string tokenJson)
     {
         try
@@ -170,10 +356,17 @@
             return string.Empty;
         }
     }
+    
     private void NavigateToCadastrarEndereco()
     {
         NavigationManager.NavigateTo("/cadastrar-endereco");
     }
+    
+    private void EditarEndereco(int enderecoId)
+    {
+        NavigationManager.NavigateTo($"/editar-endereco/{enderecoId}");
+    }
+    
     private async Task FinalizarPedido()
     {
         if (!await AuthService.IsLoggedInAsync())
@@ -181,6 +374,13 @@
             NavigationManager.NavigateTo("/login");
             return;
         }
+        
+        if (!EnderecoPrincipalSelecionado())
+        {
+            Snackbar.Add("Selecione um endereço principal para continuar", Severity.Warning);
+            return;
+        }
+        
         NavigationManager.NavigateTo("/finalizar-pedido");
     }
 }
