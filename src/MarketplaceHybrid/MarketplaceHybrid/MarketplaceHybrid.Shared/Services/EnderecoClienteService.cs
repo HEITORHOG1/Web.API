@@ -2,8 +2,8 @@
 using MarketplaceHybrid.Shared.Configurations;
 using MarketplaceHybrid.Shared.Models;
 using MarketplaceHybrid.Shared.Services.Interfaces;
-using System.Net.Http.Json;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace MarketplaceHybrid.Shared.Services

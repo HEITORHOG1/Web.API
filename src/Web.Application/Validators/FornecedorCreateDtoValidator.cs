@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
 using Web.Domain.DTOs.Fornecedor;
 
-namespace Web.API.Validators
+namespace Web.Application.Validators
 {
     public class FornecedorCreateDtoValidator : AbstractValidator<FornecedorCreateDto>
     {

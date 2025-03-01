@@ -19,7 +19,7 @@ namespace Web.Application.Services
             {
                 await _fornecedorRepository.AddAsync(fornecedor);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }

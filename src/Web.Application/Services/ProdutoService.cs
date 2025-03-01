@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using FluentValidation;
 using System.Globalization;
-using Web.API.Services;
 using Web.Application.Interfaces;
 using Web.Application.Validators;
 using Web.Domain.DTOs.Categorias;

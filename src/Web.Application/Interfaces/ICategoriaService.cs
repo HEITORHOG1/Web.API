@@ -1,5 +1,4 @@
 ﻿using Web.Domain.DTOs.Categorias;
-using Web.Domain.Entities;
 
 namespace Web.Application.Interfaces
 {

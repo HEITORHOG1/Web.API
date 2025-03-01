@@ -1,4 +1,6 @@
-﻿namespace Web.Domain.DTOs
+﻿using Web.Domain.DTOs;
+
+namespace Web.API.Services
 {
     public interface IAuthService
     {

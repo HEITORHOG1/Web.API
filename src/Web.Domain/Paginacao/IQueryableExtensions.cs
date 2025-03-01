@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Web.Domain.Paginacao;
 
-namespace Web.Application.Extensions
+namespace Web.Domain.Paginacao
 {
     public static class IQueryableExtensions
     {

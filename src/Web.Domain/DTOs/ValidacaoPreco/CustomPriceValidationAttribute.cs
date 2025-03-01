@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Web.Domain.ValidacaoPreco
+namespace Web.Domain.DTOs.ValidacaoPreco
 {
     public class CustomPriceValidationAttribute : ValidationAttribute
     {

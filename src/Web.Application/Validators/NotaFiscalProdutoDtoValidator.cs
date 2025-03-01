@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
 using Web.Domain.DTOs.NotaFiscal;
 
-namespace Web.API.Validators
+namespace Web.Application.Validators
 {
     public class NotaFiscalProdutoDtoValidator : AbstractValidator<NotaFiscalProdutoDto>
     {

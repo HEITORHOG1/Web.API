@@ -4,7 +4,6 @@ using System.Security.Claims;
 using Web.API.Services;
 using Web.Application.Interfaces;
 using Web.Domain.DTOs;
-using Web.Domain.DTOs.Pedidos;
 using Web.Domain.Entities;
 using Web.Domain.Enums;
 

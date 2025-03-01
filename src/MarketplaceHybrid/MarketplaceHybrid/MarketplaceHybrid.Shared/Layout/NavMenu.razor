@@ -1,8 +1,39 @@
-﻿<MudNavMenu>
-    <MudNavLink Href="/" Match="NavLinkMatch.All">
-        <MudIcon Icon="@Icons.Material.Filled.Home" /> Home
+﻿<MudNavMenu Class="py-3">
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
+        Home
     </MudNavLink>
-    <MudNavLink Href="/sobre/51" Match="NavLinkMatch.Prefix">
-        <MudIcon Icon="@Icons.Material.Filled.Info" /> Sobre a Loja
+
+    <MudDivider Class="my-2" />
+
+    <MudNavLink Href="/sobre/51" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Info">
+        Sobre a Loja
+    </MudNavLink>
+
+    <MudNavLink Href="/carrinho" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ShoppingCart">
+        Meu Carrinho
+    </MudNavLink>
+
+    <MudNavLink Href="/endereco-frete" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.LocationOn">
+        Meus Endereços
+    </MudNavLink>
+
+    <MudNavLink Href="/finalizar-pedido" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Payment">
+        Pagamento
     </MudNavLink>
 </MudNavMenu>
+
+<style>
+    .mud-nav-link.active {
+        background-color: rgba(234, 29, 44, 0.1) !important;
+        color: #ea1d2c !important;
+        border-right: 3px solid #ea1d2c;
+    }
+
+    .mud-nav-link:hover {
+        background-color: rgba(234, 29, 44, 0.05) !important;
+    }
+
+    .mud-nav-link.mud-nav-link-disabled {
+        color: rgba(0, 0, 0, 0.38) !important;
+    }
+</style>

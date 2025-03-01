@@ -1,4 +1,4 @@
-﻿namespace Web.Domain.DTOs
+﻿namespace Web.Domain.DTOs.Estabelecimento
 {
     public class EstabelecimentoDto
     {

@@ -1,6 +1,7 @@
 ﻿using FluentValidation;
+using Web.Domain.DTOs;
 
-namespace Web.Domain.DTOs
+namespace Web.Application.Validators
 {
     public class CarrinhoItemDtoValidator : AbstractValidator<CarrinhoItemDto>
     {

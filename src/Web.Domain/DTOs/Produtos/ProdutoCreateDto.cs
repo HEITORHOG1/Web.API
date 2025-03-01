@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
-using Web.Domain.ValidacaoPreco;
+using Web.Domain.DTOs.ValidacaoPreco;
 
 namespace Web.Domain.DTOs.Produtos
 {

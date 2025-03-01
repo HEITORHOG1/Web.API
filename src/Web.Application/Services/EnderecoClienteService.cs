@@ -1,9 +1,4 @@
 ﻿using FluentValidation;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Web.Application.Interfaces;
 using Web.Application.Validators;
 using Web.Domain.DTOs.Endereco;

@@ -1,10 +1,8 @@
 ﻿using FluentValidation;
-using MercadoPago.Resource.User;
-using Web.API.Services;
 using Web.Application.Interfaces;
 using Web.Application.Validators;
 using Web.Domain.DTOs;
-using Web.Domain.DTOs.Produtos;
+using Web.Domain.DTOs.Estabelecimento;
 using Web.Domain.Entities;
 using Web.Domain.Enums;
 using Web.Domain.Geo;
@@ -101,7 +99,7 @@ namespace Web.Application.Services
             {
                 await _estabelecimentoRepository.UpdateAsyncNess(_estabelecimento);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }

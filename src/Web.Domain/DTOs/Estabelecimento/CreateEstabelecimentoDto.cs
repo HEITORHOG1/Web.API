@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
-using System.Text.Json.Serialization;
 
-namespace Web.Application
+namespace Web.Domain.DTOs.Estabelecimento
 {
     public class CreateEstabelecimentoDto
     {
@@ -9,7 +8,7 @@ namespace Web.Application
 
         public string NomeFantasia { get; set; }
 
-  
+
         public string CNPJ { get; set; }
 
         public string Telefone { get; set; }

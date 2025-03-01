@@ -1,18 +1,59 @@
 ﻿@using MarketplaceHybrid.Shared.Configurations
 @using MarketplaceHybrid.Shared.Models
+@using MarketplaceHybrid.Shared.Services.Interfaces
 @using Microsoft.AspNetCore.Components
 
-<MudCard Class="mb-4" Style="cursor: pointer;" @onclick="NavigateToDetails">
-    <!-- Exibe a imagem do produto -->
-    <MudCardMedia Image="@GetImageUrl(Produto.Imagem)" Alt="@Produto.Nome" />
+<MudCard Class="produto-card mb-4" Style="cursor: pointer; height: 100%;" @onclick="NavigateToDetails">
+    <!-- Imagem do produto com badge de promoção, se aplicável -->
+    <MudCardMedia Image="@GetImageUrl(Produto.Imagem)" Height="180">
+        @if (Produto.Preco < 30) // Exemplo: mostrar badge de promoção
+        {
+            <div class="promo-badge">Promoção</div>
+        }
+    </MudCardMedia>
 
     <MudCardContent>
         <!-- Nome, descrição e preço do produto -->
-        <MudText Typo="Typo.h6">@Produto.Nome</MudText>
-        <MudText Typo="Typo.body2" Class="mt-2">@Produto.Descricao</MudText>
-        <MudText Typo="Typo.body1" Class="mt-2"><strong>R$ @Produto.Preco.ToString("N2")</strong></MudText>
+        <MudText Typo="Typo.h6" Class="mud-text-truncate">@Produto.Nome</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-truncate mb-2">@Produto.Descricao</MudText>
+
+        <div class="d-flex justify-space-between align-center">
+            <MudText Typo="Typo.body1" Style="font-weight: 600; color: #ea1d2c;">
+                R$ @Produto.Preco.ToString("N2")
+            </MudText>
+
+            <MudIconButton Icon="@Icons.Material.Filled.AddShoppingCart"
+                           Color="Color.Error"
+                           Size="Size.Small"
+                           OnClick="@((e) => AddToCartWithoutPropagation(e))" />
+        </div>
     </MudCardContent>
 </MudCard>
+
+<style>
+    .produto-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+        .produto-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+    .promo-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: #ea1d2c;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+</style>
 
 @code {
     [Parameter]
@@ -21,9 +62,31 @@
     [Inject]
     private NavigationManager NavigationManager { get; set; }
 
+    [Inject]
+    private ICarrinhoService CarrinhoService { get; set; }
+
     private void NavigateToDetails()
     {
-        NavigationManager.NavigateTo($"/produtos/{51}/{Produto.Id}");
+        NavigationManager.NavigateTo($"/produtos/51/{Produto.Id}");
+    }
+
+    private async Task AddToCartWithoutPropagation(MouseEventArgs e)
+    {
+        // Criar um item de carrinho a partir do produto
+        var carrinhoItem = new CarrinhoItem
+        {
+            ProdutoId = Produto.Id,
+            Nome = Produto.Nome,
+            Preco = Produto.Preco,
+            Quantidade = 1,
+            EstabelecimentoId = 51
+        };
+
+        // Adicionar ao carrinho
+        await CarrinhoService.AdicionarAoCarrinhoAsync(carrinhoItem);
+
+        // Prevenir a ação padrão manualmente
+        NavigationManager.NavigateTo("#", forceLoad: false);
     }
 
     private string GetImageUrl(string? relativePath)

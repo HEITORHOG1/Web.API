@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace Web.Domain.Entities
+﻿namespace Web.Domain.Entities
 {
     public class Categoria
     {

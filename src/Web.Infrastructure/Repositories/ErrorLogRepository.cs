@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Web.Application.Extensions;
 using Web.Domain.Entities;
 using Web.Domain.Interfaces;
 using Web.Domain.Paginacao;

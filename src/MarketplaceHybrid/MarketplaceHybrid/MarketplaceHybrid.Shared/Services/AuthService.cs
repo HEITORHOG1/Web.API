@@ -1,6 +1,5 @@
 ﻿using MarketplaceHybrid.Shared.Configurations;
 using MarketplaceHybrid.Shared.Models;
-using MarketplaceHybrid.Shared.Services.Interfaces;
 using Microsoft.JSInterop;
 using System.Net.Http.Json;
 

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace Web.API.Services
+namespace Web.Domain.Interfaces
 {
     public interface IImageUploadService
     {

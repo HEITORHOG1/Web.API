@@ -58,12 +58,12 @@ namespace Web.Infrastructure.Repositories
                     }
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
 
                 throw;
             }
-            
+
         }
 
         public async Task<IEnumerable<Pedido>> GetByUserIdAsync(string usuarioId)

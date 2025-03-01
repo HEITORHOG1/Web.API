@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Web.Domain.DTOs;
 using Web.Domain.Entities;
-using Web.Infrastructure.Data.Models;
 
 namespace Web.Infrastructure.Data.Context
 {

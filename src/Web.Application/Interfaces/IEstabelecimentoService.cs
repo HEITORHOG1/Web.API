@@ -1,4 +1,5 @@
 ﻿using Web.Domain.DTOs;
+using Web.Domain.DTOs.Estabelecimento;
 using Web.Domain.Entities;
 
 namespace Web.Application.Interfaces

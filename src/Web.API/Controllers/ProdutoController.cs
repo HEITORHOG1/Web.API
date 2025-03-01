@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using Web.API.Services;
 using Web.Application.Interfaces;
 using Web.Domain.DTOs.Produtos;
+using Web.Domain.Interfaces;
 
 namespace Web.API.Controllers
 {

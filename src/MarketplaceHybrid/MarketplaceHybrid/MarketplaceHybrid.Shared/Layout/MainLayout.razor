@@ -8,7 +8,7 @@
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="2" Color="Color.Primary">
+    <MudAppBar Elevation="0" Color="Color.Error" Dense="true">
         <!-- Botão de Menu -->
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@DrawerToggle" />
 
@@ -20,40 +20,68 @@
         <!-- Nome do Usuário e Menu -->
         @if (IsLoggedIn)
         {
-              <MudButton StartIcon="@Icons.Material.Filled.AccountCircle" Color="Color.Secondary">
-                    Bem-vindo, @Username
-                </MudButton>
-           <MudMenu Label="Perfil" Variant="Variant.Outlined" Color="Color.Secondary">
-                <MudMenuItem OnClick="IrParaPerfil">Editar Perfil</MudMenuItem>
-                <MudMenuItem OnClick="Logout">Sair</MudMenuItem>
+            <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" Dense="true">
+                <MudMenuItem Class="px-2 py-1">Olá, @Username</MudMenuItem>
+                <MudDivider />
+                <MudMenuItem OnClick="IrParaPerfil" Class="px-2 py-1">Meu Perfil</MudMenuItem>
+                <MudMenuItem OnClick="Logout" Class="px-2 py-1">Sair</MudMenuItem>
             </MudMenu>
         }
 
         <!-- Ícone do Carrinho com Badge -->
-        <MudBadge Content="@TotalItensCarrinho" Color="Color.Error">
+        <MudBadge Content="@TotalItensCarrinho" Color="Color.Secondary" Overlap="true" Bordered="true">
             <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Inherit" OnClick="IrParaCarrinho" />
         </MudBadge>
     </MudAppBar>
 
     <!-- Drawer (Menu Lateral) -->
-    <MudDrawer @bind-Open="_drawerOpen" Elevation="4" ClipMode="DrawerClipMode.Never">
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Never" Variant="@DrawerVariant.Mini"
+               Breakpoint="Breakpoint.Sm" PreserveOpenState="true">
         <NavMenu />
     </MudDrawer>
 
     <!-- Conteúdo Principal -->
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Medium">
+    <MudMainContent Class="pt-2 pb-16">
+        <MudContainer MaxWidth="MaxWidth.Medium" Class="px-2">
             @Body
         </MudContainer>
+
+        <!-- Bottom Navigation para Mobile -->
+        <MudPaper Elevation="4" Class="d-flex justify-center align-center mud-width-full py-2 px-1 fixed-bottom bottom-nav d-md-none">
+            <MudIconButton Icon="@Icons.Material.Filled.Home" Color="Color.Inherit" OnClick="@(() => NavigationManager.NavigateTo("/"))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Search" Color="Color.Inherit" />
+            <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Inherit" OnClick="IrParaCarrinho" />
+            <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Inherit" OnClick="IrParaPerfil" />
+        </MudPaper>
     </MudMainContent>
 </MudLayout>
 
+<style>
+    .bottom-nav {
+        height: 56px;
+        z-index: 1000;
+        background-color: #ea1d2c;
+    }
+
+    .mud-appbar {
+        background-color: #ea1d2c !important;
+    }
+
+    .mud-button-filled.mud-button-filled-primary {
+        background-color: #ea1d2c !important;
+    }
+
+        .mud-button-filled.mud-button-filled-primary:hover {
+            background-color: #c1121f !important;
+        }
+</style>
+
 @code {
-    private bool _drawerOpen = true;
+    private bool _drawerOpen = false;
     private int TotalItensCarrinho = 0;
     private bool IsLoggedIn = false;
     private string Username = string.Empty;
-    private decimal TaxaEntrega = 0; // Taxa de entrega do estabelecimento
+    private decimal TaxaEntrega = 0;
 
     [Inject] private ICarrinhoService CarrinhoService { get; set; }
     [Inject] private NavigationManager NavigationManager { get; set; }
@@ -64,7 +92,7 @@
     {
         await AtualizarUsuario();
         await AtualizarTotalItensCarrinho();
-        await CarregarTaxaEntrega(); // Obter taxa de entrega
+        await CarregarTaxaEntrega();
         CarrinhoService.CarrinhoAtualizado += AtualizarTotalItensCarrinho;
     }
 

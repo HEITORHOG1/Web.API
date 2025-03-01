@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using Web.Application;
 using Web.Application.Interfaces;
 using Web.Domain.DTOs;
+using Web.Domain.DTOs.Estabelecimento;
 using Web.Domain.DTOs.Produtos;
 using Web.Domain.Entities;
 using Web.Domain.Enums;
@@ -413,7 +413,7 @@ namespace Web.API.Controllers
             return CreatedAtAction(nameof(GetProdutoPorId), new { estabelecimentoId = estabelecimentoId, produtoId = produto.Id }, produto);
         }
 
-       
+
 
         /// <summary>
         /// Obtém todos os produtos de um estabelecimento.
@@ -509,7 +509,7 @@ namespace Web.API.Controllers
             produto.Preco = produtoDto.Preco;
             produto.QuantidadeEmEstoque = produtoDto.QuantidadeEmEstoque;
             produto.CategoriaId = produtoDto.CategoriaId;
-            
+
 
             await _produtoService.UpdateProdutoAsync(estabelecimentoId, produto);
             return NoContent();

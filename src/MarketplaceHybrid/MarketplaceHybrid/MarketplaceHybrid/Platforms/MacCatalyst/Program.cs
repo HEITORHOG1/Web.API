@@ -1,7 +1,6 @@
-﻿using ObjCRuntime;
-using UIKit;
+﻿using UIKit;
 
-namespace MarketplaceHybrid
+namespace MarketplaceHybrid.Platforms.MacCatalyst
 {
     public class Program
     {

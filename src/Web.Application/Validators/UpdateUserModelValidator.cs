@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
 using Web.Domain.DTOs;
 
-namespace Web.API.Validators
+namespace Web.Application.Validators
 {
     public class UpdateUserModelValidator : AbstractValidator<UpdateUserModel>
     {

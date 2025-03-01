@@ -7,9 +7,8 @@ using Serilog;
 using Web.API.Configurations;
 using Web.API.Extensions;
 using Web.API.Middlewares;
-using Web.API.Validators;
+using Web.API.ServiceDefaults;
 using Web.Application.Validators;
-using Web.Domain.DTOs;
 using Web.Domain.DTOs.MercadoPago;
 
 var builder = WebApplication.CreateBuilder(args);

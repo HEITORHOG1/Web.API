@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
-using Web.Application;
+using Web.Domain.DTOs.Estabelecimento;
 
-namespace Web.API.Validators
+namespace Web.Application.Validators
 {
     public class CreateEstabelecimentoDtoValidator : AbstractValidator<CreateEstabelecimentoDto>
     {

@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace Web.Domain.DTOs
+namespace Web.Domain.DTOs.Estabelecimento
 {
-    public class UpdateEstabelecimento
+    public class CreateEstabelecimento
     {
         public int Id { get; set; }
         public string UsuarioId { get; set; }

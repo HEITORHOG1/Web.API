@@ -1,6 +1,6 @@
 ﻿using Web.Domain.Entities;
 
-namespace Web.Infrastructure.Data.Models
+namespace Web.Domain.DTOs
 {
     public class RefreshToken
     {

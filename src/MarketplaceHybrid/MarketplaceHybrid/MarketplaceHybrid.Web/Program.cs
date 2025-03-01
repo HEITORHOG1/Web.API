@@ -3,6 +3,7 @@ using MarketplaceHybrid.Shared.Services;
 using MarketplaceHybrid.Shared.Services.Interfaces;
 using MarketplaceHybrid.Web.Components;
 using MarketplaceHybrid.Web.Services;
+using MudBlazor;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,9 +26,20 @@ builder.Services.AddScoped<HttpClient>(sp =>
     return client;
 });
 
+// Adiciona os serviços do MudBlazor
+builder.Services.AddMudServices(config =>
+{
+    config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomCenter;
+    config.SnackbarConfiguration.PreventDuplicates = false;
+    config.SnackbarConfiguration.NewestOnTop = true;
+    config.SnackbarConfiguration.ShowCloseIcon = true;
+    config.SnackbarConfiguration.VisibleStateDuration = 5000;
+    config.SnackbarConfiguration.HideTransitionDuration = 500;
+    config.SnackbarConfiguration.ShowTransitionDuration = 500;
+});
 builder.Services.AddScoped<IEstabelecimentoService, EstabelecimentoService>();
 builder.Services.AddScoped<IProdutoService, ProdutoService>();
-builder.Services.AddScoped<ICarrinhoService,CarrinhoService>();
+builder.Services.AddScoped<ICarrinhoService, CarrinhoService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IHorarioFuncionamentoService, HorarioFuncionamentoService>();
 builder.Services.AddScoped<IEnderecoClienteService, EnderecoClienteService>();

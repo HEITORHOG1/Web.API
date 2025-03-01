@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Linq.Expressions;
-using Web.Application.Extensions;
 using Web.Domain.Interfaces;
 using Web.Domain.Paginacao;
 using Web.Infrastructure.Data.Context;
