@@ -1,5 +1,6 @@
 ﻿using MercadoPago.Resource.Payment;
 using MercadoPago.Resource.Preference;
+using Web.Domain.DTOs.MercadoPago;
 using Web.Domain.Entities;
 
 namespace Web.API.Services
