@@ -6,6 +6,7 @@
 @inject IPedidoService PedidoService
 @inject IPaymentService PaymentService
 @inject ICarrinhoService CarrinhoService
+@inject IDialogService DialogService
 @implements IDisposable
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="py-6">
@@ -40,6 +41,8 @@
                     Redirecionando em @countdown segundos...
                 </MudText>
 
+                <MudProgressLinear Value="@((5 - countdown) * 20)" Class="mb-4" Color="Color.Success" />
+
                 <div class="d-flex gap-2">
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
@@ -72,11 +75,14 @@
                     Seu pagamento está sendo processado. Assim que confirmado, seu pedido será preparado.
                 </MudText>
 
-                <MudText Typo="Typo.body2" Class="mb-4">
-                    Verificando status: <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="ml-2" />
-                </MudText>
+                <MudAlert Severity="Severity.Info" Class="mb-4" Icon="@Icons.Material.Filled.Info">
+                    Verificação automática: tentativa @currentStatusCheck de @maxStatusChecks
+                    <br />Próxima verificação em @((currentRetryTimeout / 1000).ToString()) segundos
+                </MudAlert>
 
-                <div class="d-flex gap-2">
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mb-4" />
+
+                <div class="d-flex flex-column gap-2">
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                OnClick="@(() => RedirectToPedido(pedidoId))"
@@ -85,6 +91,21 @@
                     </MudButton>
 
                     <MudButton Variant="Variant.Outlined"
+                               OnClick="@ManuallyCheckStatus"
+                               StartIcon="@Icons.Material.Filled.Refresh"
+                               Disabled="isCheckingStatus">
+                        @if (isCheckingStatus)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                            <span class="ms-2">Verificando...</span>
+                        }
+                        else
+                        {
+                            <span>Verificar Status Agora</span>
+                        }
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Text"
                                OnClick="@(() => NavigationManager.NavigateTo("/"))"
                                StartIcon="@Icons.Material.Filled.Home">
                         Voltar à Loja
@@ -108,6 +129,10 @@
                     @statusMessage
                 </MudText>
 
+                <MudAlert Severity="Severity.Warning" Class="mb-4" Icon="@Icons.Material.Filled.WarningAmber">
+                    Seu carrinho foi preservado. Você pode tentar novamente ou modificar seu pedido.
+                </MudAlert>
+
                 <div class="d-flex gap-2">
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
@@ -118,8 +143,17 @@
 
                     <MudButton Variant="Variant.Outlined"
                                OnClick="@ReprocessPayment"
-                               StartIcon="@Icons.Material.Filled.Refresh">
-                        Tentar Novamente
+                               StartIcon="@Icons.Material.Filled.Refresh"
+                               Disabled="isRetrying">
+                        @if (isRetrying)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                            <span class="ms-2">Tentando...</span>
+                        }
+                        else
+                        {
+                            <span>Tentar Novamente</span>
+                        }
                     </MudButton>
                 </div>
             </div>
@@ -132,21 +166,33 @@
         animation: bounce 1s ease-in-out;
     }
 
-    @@keyframes bounce
+    @@keyframes bounce {
+        0%, 20%, 50%, 80%, 100%
+
     {
-        0%, 20%, 50%, 80%, 100% {
-            transform: translateY(0);
-        }
+        transform: translateY(0);
+    }
 
-            40% {
-                transform: translateY(-30px);
-            }
+    40% {
+        transform: translateY(-30px);
+    }
 
-            60% {
-                transform: translateY(-15px);
-            }
-        }
-    </style>
+    60% {
+        transform: translateY(-15px);
+    }
+
+    }
+
+    .fade-out {
+        opacity: 0;
+        transition: opacity 1s;
+    }
+
+    .fade-in {
+        opacity: 1;
+        transition: opacity 1s;
+    }
+</style>
 
 @code {
     [Parameter]
@@ -163,6 +209,8 @@
 
     private bool isProcessing = true;
     private bool statusOk = false;
+    private bool isCheckingStatus = false;
+    private bool isRetrying = false;
     private string statusTitle = "";
     private string statusMessage = "";
     private int pedidoId = 0;
@@ -171,11 +219,21 @@
     private System.Threading.Timer statusCheckTimer;
     private int maxStatusChecks = 10;
     private int currentStatusCheck = 0;
+    private int currentRetryTimeout = 5000; // Initial 5 seconds
+    private int maxRetryTimeout = 20000; // Max 20 seconds
+    private bool sessionExpired = false;
+    private DateTime sessionExpiryTime;
+    private System.Threading.Timer sessionExpiryTimer;
+    private const int SessionTimeoutMinutes = 15; // 15 minute payment session
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            // Set session expiry time
+            sessionExpiryTime = DateTime.Now.AddMinutes(SessionTimeoutMinutes);
+            StartSessionExpiryTimer();
+
             // Process payment callback
             if (!string.IsNullOrEmpty(Status) && !string.IsNullOrEmpty(ExternalReference))
             {
@@ -200,6 +258,11 @@
             {
                 // Check order status
                 await CheckPedidoStatus();
+            }
+            else
+            {
+                statusTitle = "Pedido Não Encontrado";
+                statusMessage = "Não foi possível localizar seu pedido. Por favor, tente novamente ou entre em contato com o suporte.";
             }
 
             if (statusOk)
@@ -242,10 +305,16 @@
                     switch (pedido.Status)
                     {
                         case StatusPedido.PagamentoAprovado:
+                        case StatusPedido.Confirmado:
+                        case StatusPedido.EmPreparo:
+                        case StatusPedido.Pronto:
+                        case StatusPedido.SaiuParaEntrega:
+                        case StatusPedido.Entregue:
                             statusOk = true;
                             break;
                         case StatusPedido.AguardandoPagamento:
                         case StatusPedido.EmProcessamento:
+                        case StatusPedido.Pendente:
                             Status = "pending";
                             break;
                         case StatusPedido.Cancelado:
@@ -273,9 +342,13 @@
                         statusTitle = "Pagamento Recusado";
                         statusMessage = "Seu pagamento não foi aprovado. Por favor, verifique os dados e tente novamente.";
                         break;
+                    case "timeout":
+                        statusTitle = "Tempo Esgotado";
+                        statusMessage = "O tempo para completar o pagamento expirou. Por favor, tente novamente.";
+                        break;
                     default:
                         statusTitle = "Status Desconhecido";
-                        statusMessage = "Não foi possível determinar o status do seu pagamento.";
+                        statusMessage = "Não foi possível determinar o status do seu pagamento. Por favor, verifique seu pedido na seção 'Meus Pedidos' ou tente novamente.";
                         break;
                 }
             }
@@ -283,6 +356,8 @@
         catch (Exception ex)
         {
             Snackbar.Add($"Erro ao verificar status do pedido: {ex.Message}", Severity.Error);
+            statusTitle = "Erro de Comunicação";
+            statusMessage = "Ocorreu um problema ao verificar o status do pagamento. Por favor, verifique sua conexão ou tente novamente mais tarde.";
         }
     }
 
@@ -297,7 +372,7 @@
                     countdownTimer?.Dispose();
                     RedirectToPedido(pedidoId);
                 }
-                StateHasChanged();
+                InvokeAsync(StateHasChanged);
             },
             state: null,
             dueTime: 0,
@@ -306,6 +381,7 @@
 
     private void StartStatusCheckTimer()
     {
+        currentRetryTimeout = 5000; // Reset to initial value
         statusCheckTimer = new System.Threading.Timer(
             callback: async _ =>
             {
@@ -313,26 +389,62 @@
             },
             state: null,
             dueTime: 3000, // First check after 3 seconds
-            period: 5000);  // Then every 5 seconds
+            period: Timeout.Infinite); // We'll reschedule with increasing intervals
+    }
+
+    private void StartSessionExpiryTimer()
+    {
+        var timeUntilExpiry = (int)(sessionExpiryTime - DateTime.Now).TotalMilliseconds;
+        if (timeUntilExpiry <= 0) return;
+
+        sessionExpiryTimer = new System.Threading.Timer(
+            callback: async _ =>
+            {
+                sessionExpired = true;
+                Status = "timeout";
+                await InvokeAsync(async () =>
+                {
+                    await CheckPedidoStatus();
+                    statusTitle = "Sessão Expirada";
+                    statusMessage = "O tempo para completar o pagamento expirou. Por favor, tente novamente.";
+                    StateHasChanged();
+                });
+
+                // Stop other timers
+                StopStatusCheckTimer();
+                countdownTimer?.Dispose();
+            },
+            state: null,
+            dueTime: timeUntilExpiry,
+            period: Timeout.Infinite);
     }
 
     private async Task CheckPaymentStatus()
     {
+        if (sessionExpired) return;
+
         currentStatusCheck++;
+        isCheckingStatus = true;
+        await InvokeAsync(StateHasChanged);
 
         try
         {
             var pedido = await PedidoService.GetPedidoByIdAsync(pedidoId);
 
-            if (pedido != null && pedido.Status == StatusPedido.PagamentoAprovado)
+            if (pedido != null &&
+                (pedido.Status == StatusPedido.PagamentoAprovado ||
+                 pedido.Status == StatusPedido.Confirmado ||
+                 pedido.Status == StatusPedido.EmPreparo ||
+                 pedido.Status == StatusPedido.Pronto ||
+                 pedido.Status == StatusPedido.SaiuParaEntrega ||
+                 pedido.Status == StatusPedido.Entregue))
             {
                 statusOk = true;
                 Status = "approved";
                 await InvokeAsync(StateHasChanged);
 
                 // Stop checking and start countdown
-                statusCheckTimer?.Dispose();
-                statusCheckTimer = null;
+                StopStatusCheckTimer();
                 StartCountdownTimer();
 
                 // Clear cart
@@ -341,38 +453,168 @@
             else if (currentStatusCheck >= maxStatusChecks)
             {
                 // Stop checking after max attempts
-                statusCheckTimer?.Dispose();
-                statusCheckTimer = null;
+                StopStatusCheckTimer();
+
+                // Show dialog for user action
+                if (!sessionExpired)
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        var result = await DialogService.ShowMessageBox(
+                            "Verificação de Pagamento",
+                            "Ainda não conseguimos confirmar seu pagamento. Deseja continuar aguardando ou verificar o status no seu pedido?",
+                            "Continuar Aguardando", "Ver Pedido", "Voltar à Loja");
+
+                        if (result == null) // Voltar à Loja
+                        {
+                            NavigationManager.NavigateTo("/");
+                        }
+                        else if (result == true) // Continuar Aguardando
+                        {
+                            // Reset counter and restart with longer interval
+                            currentStatusCheck = 0;
+                            StartStatusCheckTimer();
+                        }
+                        else // Ver Pedido
+                        {
+                            RedirectToPedido(pedidoId);
+                        }
+                    });
+                }
+            }
+            else
+            {
+                // Schedule next check with increasing delay (exponential backoff)
+                currentRetryTimeout = Math.Min(currentRetryTimeout * 2, maxRetryTimeout);
+                statusCheckTimer?.Change(currentRetryTimeout, Timeout.Infinite);
                 await InvokeAsync(StateHasChanged);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore errors during background checks
-            if (currentStatusCheck >= maxStatusChecks)
+            // Log error but continue checking
+            Console.WriteLine($"Error checking payment status: {ex.Message}");
+            // Schedule next check
+            if (currentStatusCheck < maxStatusChecks)
             {
-                statusCheckTimer?.Dispose();
-                statusCheckTimer = null;
+                statusCheckTimer?.Change(currentRetryTimeout, Timeout.Infinite);
             }
+            else
+            {
+                StopStatusCheckTimer();
+            }
+        }
+        finally
+        {
+            isCheckingStatus = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void StopStatusCheckTimer()
+    {
+        statusCheckTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        statusCheckTimer?.Dispose();
+        statusCheckTimer = null;
+    }
+
+    private async Task ManuallyCheckStatus()
+    {
+        if (isCheckingStatus) return;
+
+        isCheckingStatus = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var pedido = await PedidoService.GetPedidoByIdAsync(pedidoId);
+
+            if (pedido != null &&
+                (pedido.Status == StatusPedido.PagamentoAprovado ||
+                 pedido.Status == StatusPedido.Confirmado ||
+                 pedido.Status == StatusPedido.EmPreparo ||
+                 pedido.Status == StatusPedido.Pronto ||
+                 pedido.Status == StatusPedido.SaiuParaEntrega ||
+                 pedido.Status == StatusPedido.Entregue))
+            {
+                statusOk = true;
+                Status = "approved";
+
+                // Stop checking and start countdown
+                StopStatusCheckTimer();
+                StartCountdownTimer();
+
+                // Clear cart
+                await CarrinhoService.LimparCarrinhoAsync();
+
+                Snackbar.Add("Pagamento aprovado! Redirecionando...", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("O pagamento ainda está sendo processado. Por favor, aguarde...", Severity.Info);
+
+                // Restart timer if it was stopped
+                if (statusCheckTimer == null && !sessionExpired)
+                {
+                    currentStatusCheck = 0;
+                    StartStatusCheckTimer();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao verificar status: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isCheckingStatus = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task ReprocessPayment()
+    {
+        if (isRetrying) return;
+
+        isRetrying = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // Preserve the cart if it was cleared
+            if (sessionExpired)
+            {
+                // Reset the session
+                sessionExpired = false;
+                sessionExpiryTime = DateTime.Now.AddMinutes(SessionTimeoutMinutes);
+                StartSessionExpiryTimer();
+            }
+
+            // Redirect back to checkout page
+            NavigationManager.NavigateTo("/finalizar-pedido");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao reprocessar pagamento: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isRetrying = false;
         }
     }
 
     private void RedirectToPedido(int id)
     {
         countdownTimer?.Dispose();
-        statusCheckTimer?.Dispose();
+        StopStatusCheckTimer();
+        sessionExpiryTimer?.Dispose();
         NavigationManager.NavigateTo($"/pagamento-confirmado/{id}");
-    }
-
-    private void ReprocessPayment()
-    {
-        // Try the payment process again
-        NavigationManager.NavigateTo("/finalizar-pedido");
     }
 
     public void Dispose()
     {
         countdownTimer?.Dispose();
-        statusCheckTimer?.Dispose();
+        StopStatusCheckTimer();
+        sessionExpiryTimer?.Dispose();
     }
 }
