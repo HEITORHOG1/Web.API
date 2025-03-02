@@ -1,27 +1,42 @@
 ﻿using MarketplaceHybrid.Shared.Services.Interfaces;
+using Microsoft.JSInterop;
+using System.Text.Json;
 
 namespace MarketplaceHybrid.Shared.Services
 {
     public class LocalStorageService : ILocalStorageService
     {
-        public Task ClearAsync()
+        private readonly IJSRuntime _jsRuntime;
+
+        public LocalStorageService(IJSRuntime jsRuntime)
         {
-            throw new NotImplementedException();
+            _jsRuntime = jsRuntime;
         }
 
-        public Task<T> GetItemAsync<T>(string key)
+        public async Task<T> GetItemAsync<T>(string key)
         {
-            throw new NotImplementedException();
+            var json = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", key);
+
+            if (string.IsNullOrEmpty(json))
+                return default;
+
+            return JsonSerializer.Deserialize<T>(json);
         }
 
-        public Task RemoveItemAsync(string key)
+        public async Task SetItemAsync<T>(string key, T value)
         {
-            throw new NotImplementedException();
+            var json = JsonSerializer.Serialize(value);
+            await _jsRuntime.InvokeVoidAsync("localStorage.setItem", key, json);
         }
 
-        public Task SetItemAsync<T>(string key, T value)
+        public async Task RemoveItemAsync(string key)
         {
-            throw new NotImplementedException();
+            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", key);
+        }
+
+        public async Task ClearAsync()
+        {
+            await _jsRuntime.InvokeVoidAsync("localStorage.clear");
         }
     }
 }

@@ -4,6 +4,8 @@
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
 @inject IPedidoService PedidoService
+@inject IPaymentService PaymentService
+@inject ICarrinhoService CarrinhoService
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="py-6">
     @if (isProcessing)
@@ -57,8 +59,8 @@
         {
             <div class="d-flex flex-column align-center text-center">
                 <div class="mb-4">
-                    <MudIcon Icon="@Icons.Material.Filled.Error"
-                             Color="Color.Error"
+                    <MudIcon Icon="@(Status?.ToLower() == "pending" ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.Error)"
+                             Color="@(Status?.ToLower() == "pending" ? Color.Warning : Color.Error)"
                              Size="Size.Large"
                              Style="font-size: 72px;" />
                 </div>
@@ -104,6 +106,23 @@
     .success-icon-container {
         animation: bounce 1s ease-in-out;
     }
+
+    @@keyframes bounce {
+        0%, 20%, 50%, 80%, 100%
+
+    {
+        transform: translateY(0);
+    }
+
+    40% {
+        transform: translateY(-30px);
+    }
+
+    60% {
+        transform: translateY(-15px);
+    }
+
+    }
 </style>
 
 @code {
@@ -131,14 +150,20 @@
     {
         try
         {
-            // Se temos o pedidoId diretamente da query string
+            // Process payment callback
+            if (!string.IsNullOrEmpty(Status) && !string.IsNullOrEmpty(ExternalReference))
+            {
+                await PaymentService.HandlePaymentCallbackAsync(Status, ExternalReference);
+            }
+
+            // If we have the pedidoId directly from the query string
             if (PedidoId.HasValue)
             {
                 pedidoId = PedidoId.Value;
             }
             else if (!string.IsNullOrEmpty(ExternalReference))
             {
-                // Tenta obter pedido pelo ExternalReference
+                // Try to get pedido by ExternalReference
                 var pedido = await PedidoService.GetPedidoByExternalReferenceAsync(ExternalReference);
                 if (pedido != null)
                 {
@@ -148,12 +173,12 @@
 
             if (pedidoId > 0)
             {
-                // Verificar status do pedido
+                // Check order status
                 var pedido = await PedidoService.GetPedidoByIdAsync(pedidoId);
 
                 if (string.IsNullOrEmpty(Status))
                 {
-                    // Status não fornecido, verificar status do pedido
+                    // Status not provided, check order status
                     if (pedido != null)
                     {
                         switch (pedido.Status)
@@ -175,6 +200,9 @@
                 if (Status?.ToLower() == "approved")
                 {
                     statusOk = true;
+
+                    // Clear cart after successful payment
+                    await CarrinhoService.LimparCarrinhoAsync();
                 }
             }
 
@@ -200,7 +228,7 @@
 
             if (statusOk)
             {
-                // Inicia o timer de redirecionamento
+                // Start countdown timer for redirection
                 countdownTimer = new System.Threading.Timer(
                     callback: _ =>
                     {

@@ -9,47 +9,48 @@
 @inject IHorarioFuncionamentoService HorarioFuncionamentoService
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
+@inject ICarrinhoService CarrinhoService
 
 <PageTitle>Marketplace - Sua Comida em Minutos</PageTitle>
 
 <!-- Hero Banner Carousel -->
-<MudCarousel Class="mud-width-full rounded-lg mb-4" 
-             Style="height:180px;" 
-             ShowArrows="true" 
-             ShowDelimiters="true" 
-             AutoCycle="true" 
+<MudCarousel Class="mud-width-full rounded-lg mb-4"
+             Style="height:200px;"
+             ShowArrows="true"
+             ShowDelimiters="true"
+             AutoCycle="true"
              TData="object">
     <MudCarouselItem>
-        <div class="d-flex flex-column justify-center" 
+        <div class="d-flex flex-column justify-center"
              style="height:100%; background:linear-gradient(45deg, #ea1d2c, #ff6b6b); color: white; padding: 16px;">
             <MudText Typo="Typo.h5" Align="Align.Center">Delivery Grátis</MudText>
             <MudText Typo="Typo.body1" Align="Align.Center">Em todos os pedidos acima de R$50</MudText>
             <div class="d-flex justify-center mt-2">
-                <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@(() => NavigationManager.NavigateTo("/produtos/51"))">
+                <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@(() => NavigationManager.NavigateTo($"/cardapio/{Endpoints.EstabelecimentoID}"))">
                     Ver Cardápio
                 </MudButton>
             </div>
         </div>
     </MudCarouselItem>
     <MudCarouselItem>
-        <div class="d-flex flex-column justify-center" 
+        <div class="d-flex flex-column justify-center"
              style="height:100%; background-color:#512BD4; color: white; padding: 16px;">
             <MudText Typo="Typo.h5" Align="Align.Center">Ofertas Especiais</MudText>
             <MudText Typo="Typo.body1" Align="Align.Center">Aproveite descontos exclusivos!</MudText>
             <div class="d-flex justify-center mt-2">
-                <MudButton Variant="Variant.Filled" Color="Color.Dark">
+                <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@(() => NavigationManager.NavigateTo($"/cardapio/{Endpoints.EstabelecimentoID}"))">
                     Ver Ofertas
                 </MudButton>
             </div>
         </div>
     </MudCarouselItem>
     <MudCarouselItem>
-        <div class="d-flex flex-column justify-center" 
+        <div class="d-flex flex-column justify-center"
              style="height:100%; background-color:#212121; color: white; padding: 16px;">
             <MudText Typo="Typo.h5" Align="Align.Center">Novos Produtos</MudText>
             <MudText Typo="Typo.body1" Align="Align.Center">Confira as novidades do cardápio!</MudText>
             <div class="d-flex justify-center mt-2">
-                <MudButton Variant="Variant.Filled" Color="Color.Error">
+                <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="@(() => NavigationManager.NavigateTo($"/cardapio/{Endpoints.EstabelecimentoID}"))">
                     Explorar
                 </MudButton>
             </div>
@@ -62,7 +63,7 @@
 {
     <MudCard Class="mb-4 rounded-lg" Elevation="3">
         <MudCardMedia Image="@GetImageUrl(estabelecimentos.First().UrlImagem)" Height="180" />
-        
+
         <MudCardHeader>
             <CardHeaderAvatar>
                 <MudAvatar Color="Color.Error" Size="Size.Large">
@@ -80,41 +81,53 @@
                          Label="true"
                          Text="@(estabelecimentos.First().EstaAberto ? "Aberto" : "Fechado")">
                 </MudChip>
-
             </CardHeaderActions>
         </MudCardHeader>
-        
+
         <MudCardContent>
             <MudText Typo="Typo.body2" Class="mb-2">@estabelecimentos.First().Descricao</MudText>
-            
+
             <div class="d-flex align-center flex-wrap gap-2">
                 <div class="d-flex align-center">
                     <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Color="Color.Warning" />
                     <MudText Typo="Typo.body2" Class="ml-1">4.7</MudText>
                 </div>
-                
+
                 <MudDivider Vertical="true" FlexItem="true" Class="mx-2" />
-                
+
                 <div class="d-flex align-center">
                     <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" />
                     <MudText Typo="Typo.body2" Class="ml-1">40-50 min</MudText>
                 </div>
-                
+
                 <MudDivider Vertical="true" FlexItem="true" Class="mx-2" />
-                
+
                 <div class="d-flex align-center">
                     <MudIcon Icon="@Icons.Material.Filled.LocalShipping" Size="Size.Small" />
-                    <MudText Typo="Typo.body2" Class="ml-1 mud-success-text">Entrega Grátis</MudText>
-                </div>
+                    <MudText Typo="Typo.body2" Class="ml-1 mud-success-text">
+                        @(estabelecimentos.First().TaxaEntregaFixa > 0
+                                            ? $"R$ {estabelecimentos.First().TaxaEntregaFixa:F2}"
+                                            : "Entrega Grátis")
+                </MudText>
             </div>
-        </MudCardContent>
-        
+        </div>
+    </MudCardContent>
+
         <MudCardActions>
-            <MudButton Variant="Variant.Text" 
-                       Color="Color.Primary" 
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Primary"
                        EndIcon="@Icons.Material.Filled.ArrowForward"
                        OnClick="@(() => NavigateToLoja(estabelecimentos.First().Id))">
                 Ver mais
+            </MudButton>
+
+            <MudSpacer />
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       EndIcon="@Icons.Material.Filled.RestaurantMenu"
+                       OnClick="@(() => NavigationManager.NavigateTo($"/cardapio/{estabelecimentos.First().Id}"))">
+                Ver Cardápio
             </MudButton>
         </MudCardActions>
     </MudCard>
@@ -132,13 +145,13 @@ else
         var categorias = produtos
         .Select(p => p.NomeCategoria)
         .Distinct()
-        .Take(4)
+        .Take(6)
         .ToList();
 
         @foreach (var categoria in categorias)
         {
-            <MudItem xs="6" sm="3">
-                <MudCard Elevation="0" Class="categoria-card" @onclick="@(() => FilterByCategory(categoria))">
+            <MudItem xs="6" sm="4" md="2">
+                <MudCard Elevation="2" Class="categoria-card" @onclick="@(() => FilterByCategory(categoria))">
                     <MudCardContent Class="pa-2 d-flex flex-column align-center justify-center">
                         <MudAvatar Color="Color.Primary" Style="margin-bottom:8px;" Size="Size.Large">
                             <MudIcon Icon="@GetCategoryIcon(categoria)" />
@@ -151,9 +164,9 @@ else
     }
     else
     {
-        @for (int i = 0; i < 4; i++)
+        @for (int i = 0; i < 6; i++)
         {
-            <MudItem xs="6" sm="3">
+            <MudItem xs="6" sm="4" md="2">
                 <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="100px" Animation="Animation.Pulse" />
             </MudItem>
         }
@@ -168,7 +181,7 @@ else
         @foreach (var produto in produtos.Take(6))
         {
             <MudItem xs="12" sm="6" md="4">
-                <MudCard @onclick="@(() => NavigationManager.NavigateTo($"/produtos/{51}/{produto.Id}"))"
+                <MudCard @onclick="@(() => NavigationManager.NavigateTo($"/produtos/{Endpoints.EstabelecimentoID}/{produto.Id}"))"
                          Class="produto-card my-2" Elevation="2">
                     <MudCardMedia Image="@GetImageUrl(produto.Imagem)" Height="160" />
                     <MudCardContent Class="pa-3">
@@ -178,13 +191,15 @@ else
                             <MudText Typo="Typo.h6" Style="color:#ea1d2c; font-weight:bold;">
                                 R$ @produto.Preco.ToString("N2")
                             </MudText>
-                            <MudButton Variant="Variant.Filled" 
-                                      Color="Color.Primary"
-                                      Size="Size.Small"
-                                      OnClick="@((e) => { AddToCart(produto); })"
-                                      StartIcon="@Icons.Material.Filled.Add">
-                                Adicionar
-                            </MudButton>
+                            <div @onclick:stopPropagation>
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           @onclick="@(() => AddToCart(produto))"
+                                           StartIcon="@Icons.Material.Filled.Add">
+                                    Adicionar
+                                </MudButton>
+                            </div>
                         </div>
                     </MudCardContent>
                 </MudCard>
@@ -193,9 +208,9 @@ else
     </MudGrid>
 
     <div class="d-flex justify-center mt-4">
-        <MudButton Variant="Variant.Filled" 
+        <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
-                   OnClick="@(() => NavigationManager.NavigateTo($"/produtos/51"))"
+                   OnClick="@(() => NavigationManager.NavigateTo($"/cardapio/{Endpoints.EstabelecimentoID}"))"
                    EndIcon="@Icons.Material.Filled.ArrowForward">
             Ver Cardápio Completo
         </MudButton>
@@ -213,6 +228,18 @@ else
     </MudGrid>
 }
 
+<!-- Botão flutuante de carrinho -->
+@if (cartItemCount > 0)
+{
+    <MudFab Color="Color.Primary"
+            StartIcon="@Icons.Material.Filled.ShoppingCart"
+            Size="Size.Large"
+            Class="floating-cart-button"
+            OnClick="@(() => NavigationManager.NavigateTo("/carrinho"))">
+        @cartItemCount
+    </MudFab>
+}
+
 <style>
     .produto-card {
         cursor: pointer;
@@ -221,22 +248,22 @@ else
         overflow: hidden;
         border-radius: 12px;
     }
-    
-    .produto-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-    }
-    
+
+        .produto-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
     .mud-card-media {
         transition: transform 0.5s;
         background-size: cover;
         background-position: center;
     }
-    
+
     .produto-card:hover .mud-card-media {
         transform: scale(1.08);
     }
-    
+
     .categoria-card {
         cursor: pointer;
         transition: all 0.2s;
@@ -244,13 +271,13 @@ else
         border: 1px solid #e0e0e0;
         height: 100%;
     }
-    
-    .categoria-card:hover {
-        box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-        border-color: #ea1d2c;
-        transform: translateY(-2px);
-    }
-    
+
+        .categoria-card:hover {
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            border-color: #ea1d2c;
+            transform: translateY(-2px);
+        }
+
     .two-line-text {
         overflow: hidden;
         text-overflow: ellipsis;
@@ -259,19 +286,26 @@ else
         -webkit-box-orient: vertical;
         height: 36px;
     }
+
+    .floating-cart-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 100;
+    }
 </style>
 
 @code {
     private List<Estabelecimento>? estabelecimentos;
     private List<Cardapio>? produtos;
     private string? selectedCategory;
-
-    [Inject] private ICarrinhoService CarrinhoService { get; set; }
+    private int cartItemCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
-        try {
-            // Carrega estabelecimentos
+        try
+        {
+            // Carregar estabelecimentos
             var estabelecimentoResponse = await EstabelecimentoService.GetEstabelecimentoByIdAsync(Endpoints.EstabelecimentoID);
             if (estabelecimentoResponse != null && estabelecimentoResponse.Estabelecimento != null)
             {
@@ -287,32 +321,65 @@ else
                 estabelecimentos = new List<Estabelecimento> { estabelecimento };
             }
 
-            // Carrega produtos
+            // Carregar produtos
             produtos = await ProdutoService.GetProdutosByEstabelecimentoIdAsync(Endpoints.EstabelecimentoID);
+
+            // Atualizar contagem de itens no carrinho
+            await UpdateCartCount();
         }
-        catch (Exception ex) {
+        catch (Exception ex)
+        {
             Snackbar.Add("Erro ao carregar dados: " + ex.Message, Severity.Error);
         }
     }
 
-    private void NavigateToLoja(int id) {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                CarrinhoService.MarcarComoInicializado();
+                await UpdateCartCount();
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erro ao inicializar CarrinhoService: " + ex.Message);
+            }
+        }
+    }
+
+    private async Task UpdateCartCount()
+    {
+        var cart = await CarrinhoService.ObterCarrinhoAsync();
+        cartItemCount = cart.Sum(i => i.Quantidade);
+    }
+
+    private void NavigateToLoja(int id)
+    {
         NavigationManager.NavigateTo($"/sobre/{id}");
     }
 
-    private void FilterByCategory(string categoria) {
+    private void FilterByCategory(string categoria)
+    {
         selectedCategory = categoria;
-        NavigationManager.NavigateTo($"/produtos/51?categoria={Uri.EscapeDataString(categoria)}");
+        NavigationManager.NavigateTo($"/cardapio/{Endpoints.EstabelecimentoID}?categoria={Uri.EscapeDataString(categoria)}");
     }
 
-    private string GetImageUrl(string? relativePath) {
-        if (string.IsNullOrEmpty(relativePath)) {
-            return "https://via.placeholder.com/300x150?text=Imagem+Indisponivel";
+    private string GetImageUrl(string? relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath))
+        {
+            return "images/placeholder-food.jpg";
         }
         return $"{ApiConstants.BaseUrlImagem}/{relativePath}";
     }
-    
-    private string GetCategoryIcon(string categoria) {
-        return categoria.ToLower() switch {
+
+    private string GetCategoryIcon(string categoria)
+    {
+        return categoria?.ToLower() switch
+        {
             "pizzas" => Icons.Material.Filled.LocalPizza,
             "bebidas" => Icons.Material.Filled.LocalBar,
             "sobremesas" => Icons.Material.Filled.Icecream,
@@ -322,7 +389,7 @@ else
             _ => Icons.Material.Filled.Category
         };
     }
-    
+
     private async Task AddToCart(Cardapio produto)
     {
         var carrinhoItem = new CarrinhoItem
@@ -335,6 +402,9 @@ else
         };
 
         await CarrinhoService.AdicionarAoCarrinhoAsync(carrinhoItem);
+        await UpdateCartCount();
+
         Snackbar.Add($"{produto.Nome} adicionado ao carrinho!", Severity.Success);
     }
-   }
+
+}

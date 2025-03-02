@@ -1,0 +1,323 @@
+﻿@page "/cardapio/{estabelecimentoId:int}"
+@using MarketplaceHybrid.Shared.Models
+@using MarketplaceHybrid.Shared.Services.Interfaces
+@using MarketplaceHybrid.Shared.Configurations
+@inject IProdutoService ProdutoService
+@inject ICategoriaService CategoriaService
+@inject ICarrinhoService CarrinhoService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
+    <div class="d-flex align-center justify-space-between mb-4">
+        <MudText Typo="Typo.h4">Cardápio</MudText>
+        <MudTextField @bind-Value="@searchTerm" 
+                     Placeholder="Buscar produtos" 
+                     Adornment="Adornment.Start"
+                     AdornmentIcon="@Icons.Material.Filled.Search"
+                     Immediate="true"
+                     OnDebounceIntervalElapsed="FilterProducts"
+                     DebounceInterval="300"
+                     Class="max-width-300" />
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-center my-8">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+        </div>
+    }
+    else
+    {
+        <div class="d-flex flex-column flex-md-row gap-4">
+            <!-- Categorias (lado esquerdo no desktop, cima no mobile) -->
+            <div class="categories-panel @(isFilterOpen ? "filter-open" : "")">
+                <MudPaper Class="pa-3 mb-4 d-md-none">
+                    <MudButton Variant="Variant.Text" 
+                               StartIcon="@(isFilterOpen ? Icons.Material.Filled.Close : Icons.Material.Filled.FilterList)"
+                               FullWidth="true"
+                               OnClick="@(() => isFilterOpen = !isFilterOpen)">
+                        @(isFilterOpen ? "Fechar" : "Filtrar")
+                    </MudButton>
+                </MudPaper>
+                
+                <div class="@(isFilterOpen ? "d-block" : "d-none d-md-block")">
+                    <MudPaper Class="pa-4 mb-4 sticky-top">
+                        <MudText Typo="Typo.h6" Class="mb-3">Categorias</MudText>
+                        <MudList Clickable="true" Dense="true" T="Categoria">
+                            <MudListItem OnClick="@(() => FilterByCategory(null))"
+                                         Selected="selectedCategoryId == null">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.Restaurant" Class="mr-2" />
+                                    <MudText>Todos os produtos</MudText>
+                                </div>
+                            </MudListItem>
+
+                            @foreach (var category in categories)
+                            {
+                                <MudListItem OnClick="@(() => FilterByCategory(category.Id))"
+                                             Selected="selectedCategoryId == category.Id">
+                                    <div class="d-flex align-center">
+                                        <MudIcon Icon="@GetCategoryIcon(category.Nome)" Class="mr-2" />
+                                        <MudText>@category.Nome</MudText>
+                                    </div>
+                                </MudListItem>
+                            }
+                        </MudList>
+
+                    </MudPaper>
+                </div>
+            </div>
+
+            <!-- Produtos (lado direito no desktop, embaixo no mobile) -->
+            <div class="flex-grow-1">
+                @if (!string.IsNullOrEmpty(searchTerm) && filteredProducts.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Class="mb-4">
+                        Nenhum produto encontrado para "<strong>@searchTerm</strong>".
+                    </MudAlert>
+                }
+                
+                @foreach (var categoryGroup in groupedProducts)
+                {
+                    <div id="category-@categoryGroup.Key" class="mb-8">
+                        <MudText Typo="Typo.h5" Class="mb-4 pb-2" Style="border-bottom: 1px solid #eee;">
+                            @(categoryGroup.Key == 0 ? "Destaques" : categories.FirstOrDefault(c => c.Id == categoryGroup.Key)?.Nome ?? "Outros")
+                        </MudText>
+                        
+                        <MudGrid>
+                            @foreach (var product in categoryGroup.Value)
+                            {
+                                <MudItem xs="12" sm="6" md="4">
+                                    <MudCard Elevation="2" Class="product-card h-100">
+                                        <MudCardMedia Image="@GetImageUrl(product.Imagem)" Height="160" />
+                                        <MudCardContent>
+                                            <MudText Typo="Typo.h6" Class="mb-1">@product.Nome</MudText>
+                                            <MudText Typo="Typo.body2" Class="mb-3 product-description">@product.Descricao</MudText>
+                                            <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight:bold;">
+                                                R$ @product.Preco.ToString("N2")
+                                            </MudText>
+                                        </MudCardContent>
+                                        <MudCardActions Class="justify-space-between">
+                                            <MudButton Variant="Variant.Text" 
+                                                     Color="Color.Primary" 
+                                                     OnClick="@(() => NavigationManager.NavigateTo($"/produtos/{EstabelecimentoId}/{product.Id}"))">
+                                                Detalhes
+                                            </MudButton>
+                                            <MudIconButton Icon="@Icons.Material.Filled.AddShoppingCart" 
+                                                         Color="Color.Primary" 
+                                                         OnClick="@(() => AddToCart(product))" />
+                                        </MudCardActions>
+                                    </MudCard>
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    </div>
+                }
+                
+                @if (filteredProducts.Count == 0 && string.IsNullOrEmpty(searchTerm))
+                {
+                    <MudAlert Severity="Severity.Info">
+                        Nenhum produto disponível no momento.
+                    </MudAlert>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Botão flutuante para carrinho de compras (só aparece se tiver itens) -->
+    @if (cartItemCount > 0)
+    {
+        <MudFab Color="Color.Primary" 
+               StartIcon="@Icons.Material.Filled.ShoppingCart" 
+               Size="Size.Large" 
+               Class="floating-cart-button"
+               OnClick="@(() => NavigationManager.NavigateTo("/carrinho"))">
+            @cartItemCount
+        </MudFab>
+    }
+</MudContainer>
+
+<style>
+    .categories-panel {
+        min-width: 250px;
+    }
+    
+    .product-description {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        min-height: 40px;
+    }
+    
+    .product-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .product-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
+    }
+    
+    .sticky-top {
+        position: sticky;
+        top: 80px;
+    }
+    
+    .floating-cart-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 100;
+    }
+    
+    .max-width-300 {
+        max-width: 300px;
+    }
+    
+    @@media (max-width: 960px) {
+        .max-width-300 {
+            max-width: none;
+        }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public int EstabelecimentoId { get; set; }
+    
+    private List<Categoria> categories = new();
+    private List<Cardapio> allProducts = new();
+    private List<Cardapio> filteredProducts = new();
+    private Dictionary<int, List<Cardapio>> groupedProducts = new();
+    private int? selectedCategoryId;
+    private string searchTerm = "";
+    private bool isLoading = true;
+    private bool isFilterOpen = false;
+    private int cartItemCount = 0;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            isLoading = true;
+            
+            // Carregar categorias
+            categories = await CategoriaService.GetCategoriasByEstabelecimentoIdAsync(EstabelecimentoId);
+            
+            // Carregar produtos
+            allProducts = await ProdutoService.GetProdutosByEstabelecimentoIdAsync(EstabelecimentoId);
+            
+            // Filtrar para mostrar apenas produtos disponíveis
+            allProducts = allProducts.Where(p => p.Disponivel).ToList();
+            
+            // Aplicar filtros iniciais
+            ApplyFilters();
+            
+            // Atualizar contador do carrinho
+            await UpdateCartCount();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar cardápio: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+    
+    private void FilterByCategory(int? categoryId)
+    {
+        selectedCategoryId = categoryId;
+        ApplyFilters();
+        isFilterOpen = false;  // Fechar o painel de filtros no mobile após a seleção
+        
+        // Scroll para a categoria selecionada (usando JS)
+        if (categoryId.HasValue)
+        {
+            // Implementar scroll se necessário
+        }
+    }
+    
+    private void FilterProducts()
+    {
+        ApplyFilters();
+    }
+    
+    private void ApplyFilters()
+    {
+        // Aplicar filtro de categoria e pesquisa
+        filteredProducts = allProducts
+            .Where(p => selectedCategoryId == null || p.CategoriaId == selectedCategoryId)
+            .Where(p => string.IsNullOrEmpty(searchTerm) || 
+                      p.Nome.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                      p.Descricao.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        
+        // Agrupar por categoria para exibição
+        groupedProducts = filteredProducts
+            .GroupBy(p => p.CategoriaId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
+    
+    private async Task AddToCart(Cardapio product)
+    {
+        try
+        {
+            var cartItem = new CarrinhoItem
+            {
+                ProdutoId = product.Id,
+                Nome = product.Nome,
+                Preco = product.Preco,
+                Quantidade = 1,
+                EstabelecimentoId = EstabelecimentoId
+            };
+            
+            await CarrinhoService.AdicionarAoCarrinhoAsync(cartItem);
+            await UpdateCartCount();
+            
+            Snackbar.Add($"{product.Nome} adicionado ao carrinho!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao adicionar ao carrinho: {ex.Message}", Severity.Error);
+        }
+    }
+    
+    private async Task UpdateCartCount()
+    {
+        var cart = await CarrinhoService.ObterCarrinhoAsync();
+        cartItemCount = cart.Sum(i => i.Quantidade);
+    }
+    
+    private string GetImageUrl(string imagePath)
+    {
+        if (string.IsNullOrEmpty(imagePath))
+        {
+            return "images/placeholder-food.jpg";
+        }
+        
+        return $"{ApiConstants.BaseUrlImagem}/{imagePath}";
+    }
+    
+    private string GetCategoryIcon(string categoryName)
+    {
+        return categoryName?.ToLower() switch
+        {
+            "lanches" => Icons.Material.Filled.Fastfood,
+            "pizzas" => Icons.Material.Filled.LocalPizza,
+            "bebidas" => Icons.Material.Filled.LocalDrink,
+            "sobremesas" => Icons.Material.Filled.Icecream,
+            "saladas" => Icons.Material.Filled.EggAlt,
+            "pratos" => Icons.Material.Filled.Restaurant,
+            "combos" => Icons.Material.Filled.Dining,
+            "porções" => Icons.Material.Filled.Tapas,
+            "açaí" => Icons.Material.Filled.Icecream,
+            "japonesa" => Icons.Material.Filled.RiceBowl,
+            _ => Icons.Material.Filled.Category
+        };
+    }
+}

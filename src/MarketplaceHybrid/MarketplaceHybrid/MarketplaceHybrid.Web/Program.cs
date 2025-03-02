@@ -45,6 +45,8 @@ builder.Services.AddScoped<IHorarioFuncionamentoService, HorarioFuncionamentoSer
 builder.Services.AddScoped<IEnderecoClienteService, EnderecoClienteService>();
 builder.Services.AddScoped<IPedidoService, PedidoService>();
 builder.Services.AddScoped<ILocalStorageService, LocalStorageService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<ICategoriaService, CategoriaService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
