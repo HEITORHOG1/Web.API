@@ -71,7 +71,7 @@ namespace Web.API.Configurations
             services.AddScoped<IHorarioFuncionamentoService, HorarioFuncionamentoService>();
             services.AddTransient<IMercadoPagoService, MercadoPagoService>();
             services.AddScoped<IEnderecoClienteService, EnderecoClienteService>();
-
+            services.AddTransient<IMercadoPagoService, MercadoPagoService>();
 
             services.AddAutoMapper(typeof(CategoriaMapper));
             services.AddAutoMapper(typeof(EnderecoClienteMapper));
