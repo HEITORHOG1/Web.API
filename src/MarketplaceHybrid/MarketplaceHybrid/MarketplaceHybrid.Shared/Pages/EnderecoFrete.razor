@@ -114,7 +114,7 @@
                 <MudList T="EnderecoClienteDto" Clickable="true">
                     @foreach (var endereco in enderecos)
                     {
-                        <MudListItem OnClick="@(() => SetPrincipalAndNavigate(endereco.Id))" Class="pa-0">
+                        @* <MudListItem OnClick="@(() => SetPrincipalAndNavigate(endereco.Id))" Class="pa-0">
                             <!-- Conteúdo do item -->
                             <div class="pa-2 delivery-option @(selectedEntregaOption == 0 ? "selected-option" : "")">
                                 <div class="d-flex justify-space-between align-center">
@@ -131,9 +131,9 @@
                                     </div>
                                 </div>
                             </div>
-                        </MudListItem>
+                        </MudListItem> *@
 
-                        <MudListItem OnClick="@(() => selectedEntregaOption = 1)">
+                      @*   <MudListItem OnClick="@(() => selectedEntregaOption = 1)">
                             <div class="pa-2 delivery-option @(selectedEntregaOption == 1 ? "selected-option" : "")">
                                 <div class="d-flex justify-space-between align-center">
                                     <div>
@@ -149,7 +149,7 @@
                                     </div>
                                 </div>
                             </div>
-                        </MudListItem>
+                        </MudListItem> *@
                     }
                         </MudList>
                    

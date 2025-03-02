@@ -99,7 +99,8 @@
                 <MudText Typo="Typo.body1">R$ @TotalCarrinho.ToString("N2")</MudText>
             </div>
             
-            <div class="d-flex justify-space-between align-center mb-2">
+           @* não habilitar neste momento
+               <div class="d-flex justify-space-between align-center mb-2">
                 <div class="d-flex align-center">
                     <MudText Typo="Typo.body1">Taxa de entrega</MudText>
                     <MudTooltip Text="A taxa pode variar conforme o endereço de entrega">
@@ -116,7 +117,7 @@
                         <span class="mud-success-text">Grátis</span>
                     }
                 </MudText>
-            </div>
+            </div> *@
 
             <MudCheckBox T="bool"
                          @bind-Checked="@IncluirTaxaEntrega"
