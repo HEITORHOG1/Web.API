@@ -59,6 +59,7 @@ builder.Services.AddSwaggerGen(c =>
     var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     c.IncludeXmlComments(xmlPath);
+    c.DocInclusionPredicate((docName, apiDesc) => true);
 });
 
 builder.Services.AddControllers()

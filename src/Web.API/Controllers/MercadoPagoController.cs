@@ -5,7 +5,7 @@ using Web.Domain.DTOs.MercadoPago;
 namespace Web.API.Controllers
 {
     /// <summary>
-    /// controller
+    /// Controlador para integração de pagamentos do Mercado Pago
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]

@@ -6,6 +6,7 @@
 @inject IPedidoService PedidoService
 @inject IPaymentService PaymentService
 @inject ICarrinhoService CarrinhoService
+@implements IDisposable
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="py-6">
     @if (isProcessing)
@@ -55,12 +56,48 @@
                 </div>
             </div>
         }
+        else if (Status?.ToLower() == "pending")
+        {
+            <div class="d-flex flex-column align-center text-center">
+                <div class="mb-4">
+                    <MudIcon Icon="@Icons.Material.Filled.HourglassEmpty"
+                             Color="Color.Warning"
+                             Size="Size.Large"
+                             Style="font-size: 72px;" />
+                </div>
+
+                <MudText Typo="Typo.h4" Class="mb-2">Pagamento Pendente</MudText>
+
+                <MudText Typo="Typo.body1" Class="mb-4">
+                    Seu pagamento está sendo processado. Assim que confirmado, seu pedido será preparado.
+                </MudText>
+
+                <MudText Typo="Typo.body2" Class="mb-4">
+                    Verificando status: <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="ml-2" />
+                </MudText>
+
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="@(() => RedirectToPedido(pedidoId))"
+                               StartIcon="@Icons.Material.Filled.Receipt">
+                        Ver Pedido
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               OnClick="@(() => NavigationManager.NavigateTo("/"))"
+                               StartIcon="@Icons.Material.Filled.Home">
+                        Voltar à Loja
+                    </MudButton>
+                </div>
+            </div>
+        }
         else
         {
             <div class="d-flex flex-column align-center text-center">
                 <div class="mb-4">
-                    <MudIcon Icon="@(Status?.ToLower() == "pending" ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.Error)"
-                             Color="@(Status?.ToLower() == "pending" ? Color.Warning : Color.Error)"
+                    <MudIcon Icon="@Icons.Material.Filled.Error"
+                             Color="Color.Error"
                              Size="Size.Large"
                              Style="font-size: 72px;" />
                 </div>
@@ -72,29 +109,17 @@
                 </MudText>
 
                 <div class="d-flex gap-2">
-                    @if (Status?.ToLower() == "pending")
-                    {
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   OnClick="@(() => RedirectToPedido(pedidoId))"
-                                   StartIcon="@Icons.Material.Filled.Receipt">
-                            Ver Pedido
-                        </MudButton>
-                    }
-                    else
-                    {
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   OnClick="@(() => NavigationManager.NavigateTo("/carrinho"))"
-                                   StartIcon="@Icons.Material.Filled.ShoppingCart">
-                            Voltar ao Carrinho
-                        </MudButton>
-                    }
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="@(() => NavigationManager.NavigateTo("/carrinho"))"
+                               StartIcon="@Icons.Material.Filled.ShoppingCart">
+                        Voltar ao Carrinho
+                    </MudButton>
 
                     <MudButton Variant="Variant.Outlined"
-                               OnClick="@(() => NavigationManager.NavigateTo("/"))"
-                               StartIcon="@Icons.Material.Filled.Home">
-                        Voltar à Loja
+                               OnClick="@ReprocessPayment"
+                               StartIcon="@Icons.Material.Filled.Refresh">
+                        Tentar Novamente
                     </MudButton>
                 </div>
             </div>
@@ -107,23 +132,21 @@
         animation: bounce 1s ease-in-out;
     }
 
-    @@keyframes bounce {
-        0%, 20%, 50%, 80%, 100%
-
+    @@keyframes bounce
     {
-        transform: translateY(0);
-    }
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+        }
 
-    40% {
-        transform: translateY(-30px);
-    }
+            40% {
+                transform: translateY(-30px);
+            }
 
-    60% {
-        transform: translateY(-15px);
-    }
-
-    }
-</style>
+            60% {
+                transform: translateY(-15px);
+            }
+        }
+    </style>
 
 @code {
     [Parameter]
@@ -145,6 +168,9 @@
     private int pedidoId = 0;
     private int countdown = 5;
     private System.Threading.Timer countdownTimer;
+    private System.Threading.Timer statusCheckTimer;
+    private int maxStatusChecks = 10;
+    private int currentStatusCheck = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -156,14 +182,13 @@
                 await PaymentService.HandlePaymentCallbackAsync(Status, ExternalReference);
             }
 
-            // If we have the pedidoId directly from the query string
+            // Get pedidoId from query or by external reference
             if (PedidoId.HasValue)
             {
                 pedidoId = PedidoId.Value;
             }
             else if (!string.IsNullOrEmpty(ExternalReference))
             {
-                // Try to get pedido by ExternalReference
                 var pedido = await PedidoService.GetPedidoByExternalReferenceAsync(ExternalReference);
                 if (pedido != null)
                 {
@@ -174,75 +199,21 @@
             if (pedidoId > 0)
             {
                 // Check order status
-                var pedido = await PedidoService.GetPedidoByIdAsync(pedidoId);
-
-                if (string.IsNullOrEmpty(Status))
-                {
-                    // Status not provided, check order status
-                    if (pedido != null)
-                    {
-                        switch (pedido.Status)
-                        {
-                            case StatusPedido.PagamentoAprovado:
-                                statusOk = true;
-                                break;
-                            case StatusPedido.AguardandoPagamento:
-                            case StatusPedido.EmProcessamento:
-                                Status = "pending";
-                                break;
-                            case StatusPedido.Cancelado:
-                                Status = "failure";
-                                break;
-                        }
-                    }
-                }
-
-                if (Status?.ToLower() == "approved")
-                {
-                    statusOk = true;
-
-                    // Clear cart after successful payment
-                    await CarrinhoService.LimparCarrinhoAsync();
-                }
-            }
-
-            if (!statusOk && !string.IsNullOrEmpty(Status))
-            {
-                switch (Status.ToLower())
-                {
-                    case "pending":
-                        statusTitle = "Pagamento Pendente";
-                        statusMessage = "Seu pagamento está sendo processado. Assim que confirmado, seu pedido será preparado.";
-                        break;
-                    case "failure":
-                    case "rejected":
-                        statusTitle = "Pagamento Recusado";
-                        statusMessage = "Seu pagamento não foi aprovado. Por favor, verifique os dados e tente novamente.";
-                        break;
-                    default:
-                        statusTitle = "Status Desconhecido";
-                        statusMessage = "Não foi possível determinar o status do seu pagamento.";
-                        break;
-                }
+                await CheckPedidoStatus();
             }
 
             if (statusOk)
             {
+                // Clear cart after successful payment
+                await CarrinhoService.LimparCarrinhoAsync();
+
                 // Start countdown timer for redirection
-                countdownTimer = new System.Threading.Timer(
-                    callback: _ =>
-                    {
-                        countdown--;
-                        if (countdown <= 0)
-                        {
-                            countdownTimer?.Dispose();
-                            RedirectToPedido(pedidoId);
-                        }
-                        StateHasChanged();
-                    },
-                    state: null,
-                    dueTime: 0,
-                    period: 1000);
+                StartCountdownTimer();
+            }
+            else if (Status?.ToLower() == "pending" && pedidoId > 0)
+            {
+                // Start periodic check for pending payments
+                StartStatusCheckTimer();
             }
         }
         catch (Exception ex)
@@ -257,14 +228,151 @@
         }
     }
 
+    private async Task CheckPedidoStatus()
+    {
+        try
+        {
+            var pedido = await PedidoService.GetPedidoByIdAsync(pedidoId);
+
+            if (string.IsNullOrEmpty(Status))
+            {
+                // Status not provided, check order status
+                if (pedido != null)
+                {
+                    switch (pedido.Status)
+                    {
+                        case StatusPedido.PagamentoAprovado:
+                            statusOk = true;
+                            break;
+                        case StatusPedido.AguardandoPagamento:
+                        case StatusPedido.EmProcessamento:
+                            Status = "pending";
+                            break;
+                        case StatusPedido.Cancelado:
+                            Status = "failure";
+                            break;
+                    }
+                }
+            }
+
+            if (Status?.ToLower() == "approved")
+            {
+                statusOk = true;
+            }
+            else if (Status?.ToLower() == "pending")
+            {
+                statusTitle = "Pagamento Pendente";
+                statusMessage = "Seu pagamento está sendo processado. Assim que confirmado, seu pedido será preparado.";
+            }
+            else
+            {
+                switch (Status?.ToLower())
+                {
+                    case "failure":
+                    case "rejected":
+                        statusTitle = "Pagamento Recusado";
+                        statusMessage = "Seu pagamento não foi aprovado. Por favor, verifique os dados e tente novamente.";
+                        break;
+                    default:
+                        statusTitle = "Status Desconhecido";
+                        statusMessage = "Não foi possível determinar o status do seu pagamento.";
+                        break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao verificar status do pedido: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void StartCountdownTimer()
+    {
+        countdownTimer = new System.Threading.Timer(
+            callback: _ =>
+            {
+                countdown--;
+                if (countdown <= 0)
+                {
+                    countdownTimer?.Dispose();
+                    RedirectToPedido(pedidoId);
+                }
+                StateHasChanged();
+            },
+            state: null,
+            dueTime: 0,
+            period: 1000);
+    }
+
+    private void StartStatusCheckTimer()
+    {
+        statusCheckTimer = new System.Threading.Timer(
+            callback: async _ =>
+            {
+                await CheckPaymentStatus();
+            },
+            state: null,
+            dueTime: 3000, // First check after 3 seconds
+            period: 5000);  // Then every 5 seconds
+    }
+
+    private async Task CheckPaymentStatus()
+    {
+        currentStatusCheck++;
+
+        try
+        {
+            var pedido = await PedidoService.GetPedidoByIdAsync(pedidoId);
+
+            if (pedido != null && pedido.Status == StatusPedido.PagamentoAprovado)
+            {
+                statusOk = true;
+                Status = "approved";
+                await InvokeAsync(StateHasChanged);
+
+                // Stop checking and start countdown
+                statusCheckTimer?.Dispose();
+                statusCheckTimer = null;
+                StartCountdownTimer();
+
+                // Clear cart
+                await CarrinhoService.LimparCarrinhoAsync();
+            }
+            else if (currentStatusCheck >= maxStatusChecks)
+            {
+                // Stop checking after max attempts
+                statusCheckTimer?.Dispose();
+                statusCheckTimer = null;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch
+        {
+            // Ignore errors during background checks
+            if (currentStatusCheck >= maxStatusChecks)
+            {
+                statusCheckTimer?.Dispose();
+                statusCheckTimer = null;
+            }
+        }
+    }
+
     private void RedirectToPedido(int id)
     {
         countdownTimer?.Dispose();
+        statusCheckTimer?.Dispose();
         NavigationManager.NavigateTo($"/pagamento-confirmado/{id}");
+    }
+
+    private void ReprocessPayment()
+    {
+        // Try the payment process again
+        NavigationManager.NavigateTo("/finalizar-pedido");
     }
 
     public void Dispose()
     {
         countdownTimer?.Dispose();
+        statusCheckTimer?.Dispose();
     }
 }
