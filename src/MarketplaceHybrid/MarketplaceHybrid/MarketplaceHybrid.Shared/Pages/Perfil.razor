@@ -1,0 +1,682 @@
+﻿@page "/perfil"
+@using MarketplaceHybrid.Shared.Models
+@using MarketplaceHybrid.Shared.Services.Interfaces
+@using System.Text.Json
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject HttpClient HttpClient
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="py-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Meu Perfil</MudText>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-center my-8">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    else if (!isLoggedIn)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            Você precisa estar logado para acessar esta página.
+        </MudAlert>
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   OnClick="@(() => NavigationManager.NavigateTo("/login"))"
+                   StartIcon="@Icons.Material.Filled.Login">
+            Fazer Login
+        </MudButton>
+    }
+    else
+    {
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+            <!-- Aba de Informações Pessoais -->
+            <MudTabPanel Text="Informações Pessoais" Icon="@Icons.Material.Filled.Person">
+                <MudCard Elevation="0">
+                    <MudCardContent>
+                        <div class="d-flex flex-column align-center mb-6">
+                            <MudAvatar Color="Color.Primary" Style="height: 100px; width: 100px; font-size: 2.5rem;" Class="mb-3">
+                                @GetUserInitials()
+                            </MudAvatar>
+                            <MudText Typo="Typo.h5">@userData.NomeUsuario</MudText>
+                            <MudText Typo="Typo.body1">@userData.UserName</MudText>
+                            <MudText Typo="Typo.body2">@userData.Email</MudText>
+                        </div>
+
+                        <MudDivider Class="my-4" />
+
+                        <MudForm @ref="form" Model="@userInfoModel" @bind-IsValid="@success">
+                            <MudGrid>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField T="string" 
+                                                 Label="Nome Completo" 
+                                                 @bind-Value="userInfoModel.NomeUsuario" 
+                                                 Required="true" 
+                                                 RequiredError="Nome é obrigatório" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField T="string" 
+                                                 Label="Telefone" 
+                                                 @bind-Value="userInfoModel.Telefone" 
+                                                 Required="true" 
+                                                 RequiredError="Telefone é obrigatório"
+                                                 />
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField T="string" 
+                                                 Label="Email" 
+                                                 @bind-Value="userData.Email" 
+                                                 ReadOnly="true"
+                                                 Variant="Variant.Filled"
+                                                 HelperText="O email não pode ser alterado" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField T="string" 
+                                                 Label="Nome de Usuário" 
+                                                 @bind-Value="userData.UserName" 
+                                                 ReadOnly="true"
+                                                 Variant="Variant.Filled"
+                                                 HelperText="O nome de usuário não pode ser alterado" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField T="string" 
+                                                 Label="CPF/CNPJ" 
+                                                 @bind-Value="userInfoModel.CPF_CNPJ" 
+                                                 ReadOnly="true"
+                                                 Variant="Variant.Filled"
+                                                 HelperText="O CPF/CNPJ não pode ser alterado" />
+                                </MudItem>
+                            </MudGrid>
+
+                            <div class="d-flex justify-end mt-4">
+                                <MudButton Variant="Variant.Filled" 
+                                          Color="Color.Primary" 
+                                          Disabled="!success || isSaving"
+                                          OnClick="AtualizarInformacoesPessoais">
+                                    @if (isSaving)
+                                    {
+                                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                        <span class="ms-2">Salvando...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Salvar Alterações</span>
+                                    }
+                                </MudButton>
+                            </div>
+                        </MudForm>
+                    </MudCardContent>
+                </MudCard>
+            </MudTabPanel>
+
+            <!-- Aba de Segurança -->
+            <MudTabPanel Text="Segurança" Icon="@Icons.Material.Filled.Security">
+                <MudCard Elevation="0">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-4">Alterar Senha</MudText>
+
+                        <MudForm @ref="passwordForm" Model="@passwordModel" @bind-IsValid="@passwordFormValid">
+                            <MudGrid>
+                                <MudItem xs="12">
+                                    <MudTextField T="string" 
+                                                 Label="Senha Atual" 
+                                                 @bind-Value="passwordModel.CurrentPassword" 
+                                                 Required="true" 
+                                                 RequiredError="Senha atual é obrigatória"
+                                                 InputType="InputType.Password" />
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField T="string" 
+                                                 Label="Nova Senha" 
+                                                 @bind-Value="passwordModel.NewPassword" 
+                                                 Required="true" 
+                                                 RequiredError="Nova senha é obrigatória"
+                                                 InputType="InputType.Password"
+                                                 Validation="@(new Func<string, IEnumerable<string>>(ValidatePassword))" />
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField T="string" 
+                                                 Label="Confirmar Nova Senha" 
+                                                 @bind-Value="passwordModel.ConfirmPassword" 
+                                                 Required="true" 
+                                                 RequiredError="Confirmação de senha é obrigatória"
+                                                 InputType="InputType.Password"
+                                                 Validation="@(new Func<string, string>(PasswordsMatch))" />
+                                </MudItem>
+                            </MudGrid>
+
+                            <div class="d-flex justify-end mt-4">
+                                <MudButton Variant="Variant.Filled" 
+                                          Color="Color.Primary" 
+                                          Disabled="!passwordFormValid || isPasswordChanging"
+                                          OnClick="AlterarSenha">
+                                    @if (isPasswordChanging)
+                                    {
+                                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                        <span class="ms-2">Alterando...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Alterar Senha</span>
+                                    }
+                                </MudButton>
+                            </div>
+                        </MudForm>
+
+                        <MudDivider Class="my-6" />
+
+                        <!-- Segurança da Conta -->
+                        <MudText Typo="Typo.h6" Class="mb-4">Segurança da Conta</MudText>
+
+                        <MudGrid>
+                            <MudItem xs="12">
+                                <MudPaper Class="pa-4" Outlined="true">
+                                    <div class="d-flex justify-space-between align-center">
+                                        <div>
+                                            <MudText Typo="Typo.subtitle1">Login com Duas Etapas</MudText>
+                                            <MudText Typo="Typo.body2">Adicione uma camada extra de segurança à sua conta</MudText>
+                                        </div>
+                                        <MudSwitch T="bool" @bind-Checked="@twoFactorEnabled" Color="Color.Primary" />
+                                    </div>
+                                </MudPaper>
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudPaper Class="pa-4" Outlined="true">
+                                    <div class="d-flex justify-space-between align-center">
+                                        <div>
+                                            <MudText Typo="Typo.subtitle1">Dispositivos Conectados</MudText>
+                                            <MudText Typo="Typo.body2">Gerencie dispositivos que estão conectados à sua conta</MudText>
+                                        </div>
+                                        <MudButton Variant="Variant.Text" 
+                                                  Color="Color.Primary"
+                                                  OnClick="@(() => AbrirDialogDispositivosConectados())">
+                                            Visualizar
+                                        </MudButton>
+                                    </div>
+                                </MudPaper>
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudPaper Class="pa-4 mud-error" Outlined="true">
+                                    <div class="d-flex justify-space-between align-center">
+                                        <div>
+                                            <MudText Typo="Typo.subtitle1">Excluir Conta</MudText>
+                                            <MudText Typo="Typo.body2">Esta ação é irreversível</MudText>
+                                        </div>
+                                        <MudButton Variant="Variant.Filled" 
+                                                  Color="Color.Error"
+                                                  OnClick="@(() => ConfirmarExclusaoConta())">
+                                            Excluir Conta
+                                        </MudButton>
+                                    </div>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+                    </MudCardContent>
+                </MudCard>
+            </MudTabPanel>
+
+            <!-- Aba de Endereços -->
+            <MudTabPanel Text="Meus Endereços" Icon="@Icons.Material.Filled.LocationOn">
+                <MudCard Elevation="0">
+                    <MudCardContent>
+                        <div class="d-flex justify-space-between align-center mb-4">
+                            <MudText Typo="Typo.h6">Endereços Cadastrados</MudText>
+                            <MudButton Variant="Variant.Filled" 
+                                    Color="Color.Primary" 
+                                    StartIcon="@Icons.Material.Filled.Add"
+                                    OnClick="@(() => NavigationManager.NavigateTo("/cadastrar-endereco"))">
+                                Novo Endereço
+                            </MudButton>
+                        </div>
+
+                        @if (isLoadingEnderecos)
+                        {
+                            <div class="d-flex justify-center my-4">
+                                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                            </div>
+                        }
+                        else if (enderecos == null || !enderecos.Any())
+                        {
+                            <MudAlert Severity="Severity.Info" Class="mb-4">
+                                Você ainda não possui endereços cadastrados.
+                            </MudAlert>
+                        }
+                        else
+                        {
+                            <MudList T="EnderecoClienteDto">
+                                @foreach (var endereco in enderecos)
+                                {
+                                   <MudPaper Class="@($"pa-4 mb-4 {(endereco.Principal ? "border-primary" : "")}")" Outlined="true">
+                                        <div class="d-flex justify-space-between">
+                                            <div>
+                                                <div class="d-flex align-center">
+                                                    <MudIcon Icon="@Icons.Material.Filled.LocationOn" 
+                                                           Color="@(endereco.Principal ? Color.Primary : Color.Default)" 
+                                                           Class="mr-2" />
+                                                    <MudText Typo="Typo.h6">@(endereco.Principal ? "Principal" : "Endereço")</MudText>
+                                                </div>
+                                                <MudText Typo="Typo.body1" Class="mt-2">
+                                                    @endereco.Logradouro, @endereco.Numero
+                                                    @if (!string.IsNullOrEmpty(endereco.Complemento))
+                                                    {
+                                                        <span> - @endereco.Complemento</span>
+                                                    }
+                                                </MudText>
+                                                <MudText Typo="Typo.body2">
+                                                    @endereco.Bairro, @endereco.Cidade - @endereco.Estado
+                                                </MudText>
+                                                <MudText Typo="Typo.body2">CEP: @endereco.CEP</MudText>
+                                            </div>
+
+                                            <div class="d-flex flex-column">
+                                                <MudButton Variant="Variant.Text" 
+                                                         Color="Color.Primary"
+                                                         StartIcon="@Icons.Material.Filled.Edit"
+                                                         OnClick="@(() => EditarEndereco(endereco.Id))">
+                                                    Editar
+                                                </MudButton>
+
+                                                @if (!endereco.Principal)
+                                                {
+                                                    <MudButton Variant="Variant.Text" 
+                                                             Color="Color.Primary"
+                                                             StartIcon="@Icons.Material.Filled.Star"
+                                                             OnClick="@(() => DefinirEnderecoPrincipal(endereco.Id))">
+                                                        Tornar Principal
+                                                    </MudButton>
+                                                }
+
+                                                <MudButton Variant="Variant.Text" 
+                                                         Color="Color.Error"
+                                                         StartIcon="@Icons.Material.Filled.Delete"
+                                                         OnClick="@(() => ExcluirEndereco(endereco.Id))">
+                                                    Excluir
+                                                </MudButton>
+                                            </div>
+                                        </div>
+                                    </MudPaper>
+                                }
+                            </MudList>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudTabPanel>
+
+            <!-- Aba de Histórico de Pedidos -->
+            <MudTabPanel Text="Histórico de Pedidos" Icon="@Icons.Material.Filled.Receipt">
+                <MudCard Elevation="0">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" Class="mb-4">Meus Pedidos</MudText>
+
+                        @if (isLoadingPedidos)
+                        {
+                            <div class="d-flex justify-center my-4">
+                                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                            </div>
+                        }
+                        else if (pedidos == null || !pedidos.Any())
+                        {
+                            <MudAlert Severity="Severity.Info" Class="mb-4">
+                                Você ainda não realizou nenhum pedido.
+                            </MudAlert>
+                            
+                            <MudButton Variant="Variant.Filled" 
+                                      Color="Color.Primary" 
+                                      OnClick="@(() => NavigationManager.NavigateTo("/"))"
+                                      StartIcon="@Icons.Material.Filled.ShoppingCart">
+                                Fazer Pedido
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <!-- Implementar futuramente a listagem de pedidos -->
+                            <MudText Typo="Typo.body2">Lista de pedidos será implementada em breve.</MudText>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudTabPanel>
+        </MudTabs>
+    }
+</MudContainer>
+
+@code {
+    private bool isLoading = true;
+    private bool isLoggedIn = false;
+    private bool isSaving = false;
+    private bool isPasswordChanging = false;
+    private bool isLoadingEnderecos = false;
+    private bool isLoadingPedidos = false;
+    private bool success;
+    private bool passwordFormValid;
+    private bool twoFactorEnabled = false;
+
+    private UserResponse userData = new();
+    private UserInfoModel userInfoModel = new();
+    private PasswordChangeModel passwordModel = new();
+    private List<EnderecoClienteDto>? enderecos;
+    private List<PedidoCompleto>? pedidos;
+
+    private MudForm? form;
+    private MudForm? passwordForm;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        
+        try
+        {
+            isLoggedIn = await AuthService.IsLoggedInAsync();
+            
+            if (isLoggedIn)
+            {
+                // Obter dados do usuário
+                var tokenJson = await AuthService.GetTokenAsync();
+                userData = ExtractUserFromToken(tokenJson);
+                
+                // Inicializar o modelo de informações do usuário
+                userInfoModel = new UserInfoModel
+                {
+                    NomeUsuario = userData.NomeUsuario,
+                    Telefone = "(11) 98765-4321",  // Mock data
+                    CPF_CNPJ = "123.456.789-00"    // Mock data
+                };
+                
+                // Carregar endereços e pedidos
+                await CarregarEnderecos();
+                await CarregarPedidos();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar dados do perfil: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CarregarEnderecos()
+    {
+        isLoadingEnderecos = true;
+        try
+        {
+            // Implementar a lógica para carregar os endereços
+            // Por enquanto, usando dados de exemplo
+            enderecos = new List<EnderecoClienteDto>
+            {
+                new EnderecoClienteDto
+                {
+                    Id = 1,
+                    Logradouro = "Rua Exemplo",
+                    Numero = "123",
+                    Complemento = "Apto 101",
+                    Bairro = "Centro",
+                    Cidade = "São Paulo",
+                    Estado = "SP",
+                    CEP = "01001-000",
+                    Principal = true
+                },
+                new EnderecoClienteDto
+                {
+                    Id = 2,
+                    Logradouro = "Avenida Teste",
+                    Numero = "456",
+                    Complemento = "",
+                    Bairro = "Jardim América",
+                    Cidade = "São Paulo",
+                    Estado = "SP",
+                    CEP = "01402-000",
+                    Principal = false
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar endereços: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoadingEnderecos = false;
+        }
+    }
+
+    private async Task CarregarPedidos()
+    {
+        isLoadingPedidos = true;
+        try
+        {
+            // Implementar a lógica para carregar os pedidos
+            // Por enquanto, deixando vazio
+            pedidos = new List<PedidoCompleto>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao carregar pedidos: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoadingPedidos = false;
+        }
+    }
+
+    private UserResponse ExtractUserFromToken(string tokenJson)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(tokenJson);
+            var root = document.RootElement;
+            
+            if (root.TryGetProperty("user", out var userElement))
+            {
+                return JsonSerializer.Deserialize<UserResponse>(userElement.GetRawText()) ?? new UserResponse();
+            }
+            
+            // Mock data if user info not found in token
+            return new UserResponse
+            {
+                Id = "123",
+                UserName = "usuario_teste",
+                Email = "usuario@teste.com",
+                NomeUsuario = "Usuário Teste"
+            };
+        }
+        catch
+        {
+            // Return mock data in case of error
+            return new UserResponse
+            {
+                Id = "123",
+                UserName = "usuario_teste",
+                Email = "usuario@teste.com",
+                NomeUsuario = "Usuário Teste"
+            };
+        }
+    }
+
+    private string GetUserInitials()
+    {
+        if (string.IsNullOrEmpty(userData.NomeUsuario))
+            return "U";
+            
+        var parts = userData.NomeUsuario.Split(' ');
+        if (parts.Length == 1)
+            return parts[0].Substring(0, 1).ToUpper();
+            
+        return (parts[0].Substring(0, 1) + parts[parts.Length - 1].Substring(0, 1)).ToUpper();
+    }
+
+    private async Task AtualizarInformacoesPessoais()
+    {
+        isSaving = true;
+        try
+        {
+            // Implementar a lógica para atualizar as informações do usuário
+            await Task.Delay(1000); // Simulando uma chamada de API
+            
+            userData.NomeUsuario = userInfoModel.NomeUsuario;
+            Snackbar.Add("Informações atualizadas com sucesso!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao atualizar informações: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private IEnumerable<string> ValidatePassword(string password)
+    {
+        if (string.IsNullOrWhiteSpace(password))
+            yield return "A senha não pode estar vazia";
+            
+        if (password?.Length < 8)
+            yield return "A senha deve ter pelo menos 8 caracteres";
+            
+        if (password != null && !password.Any(char.IsUpper))
+            yield return "A senha deve conter pelo menos uma letra maiúscula";
+            
+        if (password != null && !password.Any(char.IsDigit))
+            yield return "A senha deve conter pelo menos um número";
+    }
+
+    private string PasswordsMatch(string confirmPassword)
+    {
+        if (passwordModel.NewPassword != confirmPassword)
+            return "As senhas não coincidem";
+            
+        return string.Empty;
+    }
+
+    private async Task AlterarSenha()
+    {
+        isPasswordChanging = true;
+        try
+        {
+            // Implementar a lógica para alterar a senha
+            await Task.Delay(1000); // Simulando uma chamada de API
+
+            Snackbar.Add("Senha alterada com sucesso!", Severity.Success);
+            passwordModel = new PasswordChangeModel();
+            if (passwordForm is not null)
+            {
+                await passwordForm.ResetAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao alterar senha: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isPasswordChanging = false;
+        }
+    }
+
+    private async Task AbrirDialogDispositivosConectados()
+    {
+        // Implementar futuramente
+        Snackbar.Add("Funcionalidade será implementada em breve.", Severity.Info);
+    }
+
+    private async Task ConfirmarExclusaoConta()
+    {
+        var parameters = new DialogParameters
+        {
+            { "ContentText", "Tem certeza de que deseja excluir sua conta? Esta ação é irreversível e todos os seus dados serão perdidos." },
+            { "ButtonText", "Excluir Conta" },
+            { "Color", Color.Error }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small };
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>("Excluir Conta", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            Snackbar.Add("Funcionalidade será implementada em breve.", Severity.Info);
+        }
+    }
+
+    private void EditarEndereco(int id)
+    {
+        NavigationManager.NavigateTo($"/editar-endereco/{id}");
+    }
+
+    private async Task DefinirEnderecoPrincipal(int id)
+    {
+        try
+        {
+            // Implementar a lógica para definir o endereço como principal
+            await Task.Delay(500); // Simulando uma chamada de API
+            
+            if (enderecos != null)
+            {
+                foreach (var endereco in enderecos)
+                {
+                    endereco.Principal = endereco.Id == id;
+                }
+            }
+            
+            Snackbar.Add("Endereço principal atualizado com sucesso!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erro ao atualizar endereço principal: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ExcluirEndereco(int id)
+    {
+        var parameters = new DialogParameters
+        {
+            { "ContentText", "Tem certeza de que deseja excluir este endereço?" },
+            { "ButtonText", "Excluir" },
+            { "Color", Color.Error }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small };
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>("Excluir Endereço", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                // Implementar a lógica para excluir o endereço
+                await Task.Delay(500); // Simulando uma chamada de API
+                
+                if (enderecos != null)
+                {
+                    enderecos = enderecos.Where(e => e.Id != id).ToList();
+                }
+                
+                Snackbar.Add("Endereço excluído com sucesso!", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Erro ao excluir endereço: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    public class UserInfoModel
+    {
+        public string NomeUsuario { get; set; } = string.Empty;
+        public string Telefone { get; set; } = string.Empty;
+        public string CPF_CNPJ { get; set; } = string.Empty;
+    }
+
+    public class PasswordChangeModel
+    {
+        public string CurrentPassword { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}

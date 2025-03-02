@@ -4,60 +4,359 @@
 @using MarketplaceHybrid.Shared.Services.Interfaces
 @inject IEstabelecimentoService EstabelecimentoService
 @inject ICarrinhoService CarrinhoService
+@inject NavigationManager NavigationManager
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Sobre a Loja</MudText>
-    @if (response != null)
+<MudContainer MaxWidth="MaxWidth.Medium" Class="py-4">
+    @if (isLoading)
     {
-        <MudCard Class="mb-4">
-            <MudCardMedia Image="@GetImageUrl(response.Estabelecimento.UrlImagem)" Alt="@response.Estabelecimento.NomeFantasia" />
-            <MudCardContent>
-                <MudText Typo="Typo.h5">@response.Estabelecimento.NomeFantasia</MudText>
-                <MudText Typo="Typo.body2">@response.Estabelecimento.Descricao</MudText>
-                <MudDivider Class="my-2" />
-                <MudText Typo="Typo.subtitle1"><MudIcon Icon="@Icons.Material.Filled.LocationOn" /> Endereço:</MudText>
-                <MudText Typo="Typo.body2">@response.Estabelecimento.Endereco, @response.Estabelecimento.Numero - @response.Estabelecimento.Cep</MudText>
-                <MudDivider Class="my-2" />
-                <MudText Typo="Typo.subtitle1"><MudIcon Icon="@Icons.Material.Filled.Schedule" /> Horário de Funcionamento:</MudText>
-                @if (response.HorarioFuncionamento != null && response.HorarioFuncionamento.Any())
-                {
-                    @foreach (var horario in response.HorarioFuncionamento)
-                    {
-                        <MudText Typo="Typo.body2">@horario.DiaSemana: @horario.HoraAbertura - @horario.HoraFechamento</MudText>
-                    }
-                }
-                else
-                {
-                    <MudText Typo="Typo.body2">Horário de funcionamento não disponível</MudText>
-                }
-                <MudDivider Class="my-2" />
-                <MudText Typo="Typo.subtitle1"><MudIcon Icon="@Icons.Material.Filled.Payment" /> Formas de Pagamento:</MudText>
-                <MudText Typo="Typo.body2">Cartão de Débito, Crédito, Dinheiro</MudText>
-            </MudCardContent>
-        </MudCard>
+        <div class="d-flex justify-center my-8">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    else if (response != null)
+    {
+        <MudGrid>
+            <!-- Coluna da imagem e informações básicas -->
+            <MudItem xs="12" md="5">
+                <MudCard Elevation="2" Class="mb-4">
+                    <MudCardMedia Image="@GetImageUrl(response.Estabelecimento.UrlImagem)" 
+                                  Height="240" 
+                                  Style="background-position: center; background-size: cover;" />
+                    <MudCardContent>
+                        <div class="d-flex align-center justify-space-between mb-2">
+                            <MudText Typo="Typo.h5">@response.Estabelecimento.NomeFantasia</MudText>
+                            <MudChip T="object"
+                                    Color="@(response.Estabelecimento.EstaAberto ? Color.Success : Color.Error)"
+                                    Size="Size.Small"
+                                    Label="true">
+                                @(response.Estabelecimento.EstaAberto ? "Aberto" : "Fechado")
+                            </MudChip>
+                        </div>
+                        
+                        <MudDivider Class="my-2" />
+                        
+                        <div class="d-flex align-center mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Color="Color.Warning" Class="mr-1" />
+                            <MudText Typo="Typo.body2" Class="mr-3">4.8 (328 avaliações)</MudText>
+                            
+                            <MudIcon Icon="@Icons.Material.Filled.Timer" Size="Size.Small" Class="mr-1" />
+                            <MudText Typo="Typo.body2">30-45 min</MudText>
+                        </div>
+                        
+                        <div class="d-flex align-center mb-3">
+                            <MudIcon Icon="@Icons.Material.Filled.DeliveryDining" Size="Size.Small" Class="mr-1" />
+                            <MudText Typo="Typo.body2" Class="mr-3">
+                                @(response.Estabelecimento.TaxaEntregaFixa > 0
+                                    ? $"Entrega: R$ {response.Estabelecimento.TaxaEntregaFixa:F2}"
+                                    : "Entrega Grátis")
+                            </MudText>
+                            
+                            <MudIcon Icon="@Icons.Material.Filled.Place" Size="Size.Small" Class="mr-1" />
+                            <MudText Typo="Typo.body2">@response.Estabelecimento.RaioEntregaKm km</MudText>
+                        </div>
+                        
+                        <MudText Typo="Typo.body1" Class="mb-3">@response.Estabelecimento.Descricao</MudText>
+                        
+                        <MudButton Variant="Variant.Filled" 
+                                  Color="Color.Primary" 
+                                  FullWidth="true"
+                                  OnClick="@(() => NavigationManager.NavigateTo($"/cardapio/{Id}"))">
+                            Ver Cardápio
+                        </MudButton>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            
+            <!-- Coluna com detalhes e horários -->
+            <MudItem xs="12" md="7">
+                <!-- Endereço -->
+                <MudCard Elevation="2" Class="mb-4">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.LocationOn" Color="Color.Primary" />
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Endereço</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudText Typo="Typo.body1">@response.Estabelecimento.Endereco, @response.Estabelecimento.Numero</MudText>
+                        <MudText Typo="Typo.body2">CEP: @response.Estabelecimento.Cep</MudText>
+
+                        <MudButton Variant="Variant.Text"
+                                   StartIcon="@Icons.Material.Filled.Map"
+                                   Color="Color.Primary"
+                                   Class="mt-2"
+                                   Link="@googleMapsUrl"
+                                   Target="_blank">
+                            Ver no Mapa
+                        </MudButton>
+                    </MudCardContent>
+                </MudCard>
+                
+                <!-- Horário de Funcionamento -->
+                <MudCard Elevation="2" Class="mb-4">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.Schedule" Color="Color.Primary" />
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Horário de Funcionamento</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        @if (response.HorarioFuncionamento != null && response.HorarioFuncionamento.Any())
+                        {
+                            <MudList T="HorarioFuncionamento" Clickable="false" Dense="true">
+                                @foreach (var horario in response.HorarioFuncionamento)
+                                {
+                                    <MudListItem T="HorarioFuncionamento" Icon="@Icons.Material.Filled.Today"
+                                                 IconColor="@(IsToday(horario.DiaSemana) ? Color.Primary : Color.Default)">
+                                        <div class="d-flex justify-space-between align-center w-100">
+                                            <MudText Typo="Typo.body1" Style="@(IsToday(horario.DiaSemana) ? "font-weight: 500" : "")">
+                                                @horario.DiaSemana
+                                            </MudText>
+                                            <MudText Typo="Typo.body2">
+                                                @horario.HoraAbertura - @horario.HoraFechamento
+                                            </MudText>
+                                        </div>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2">Horário de funcionamento não disponível</MudText>
+                        }
+                    </MudCardContent>
+                </MudCard>
+                
+                <!-- Formas de Pagamento -->
+                <MudCard Elevation="2" Class="mb-4">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.Payment" Color="Color.Primary" />
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Formas de Pagamento</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudGrid>
+                            <MudItem xs="6" sm="3">
+                                <div class="d-flex flex-column align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.CreditCard" Size="Size.Large" Class="mb-2" />
+                                    <MudText Typo="Typo.body2" Align="Align.Center">Cartão de Crédito</MudText>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="6" sm="3">
+                                <div class="d-flex flex-column align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.CreditCard" Size="Size.Large" Class="mb-2" />
+                                    <MudText Typo="Typo.body2" Align="Align.Center">Cartão de Débito</MudText>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="6" sm="3">
+                                <div class="d-flex flex-column align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.QrCode" Size="Size.Large" Class="mb-2" />
+                                    <MudText Typo="Typo.body2" Align="Align.Center">PIX</MudText>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="6" sm="3">
+                                <div class="d-flex flex-column align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Large" Class="mb-2" />
+                                    <MudText Typo="Typo.body2" Align="Align.Center">Dinheiro</MudText>
+                                </div>
+                            </MudItem>
+                        </MudGrid>
+                    </MudCardContent>
+                </MudCard>
+                
+                <!-- Avaliações e Comentários (Mockup) -->
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" />
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Avaliações</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="d-flex align-center justify-space-between mb-4">
+                            <div>
+                                <MudText Typo="Typo.h3">4.8</MudText>
+                                <MudRating ReadOnly="true" SelectedValue="5" />
+                                <MudText Typo="Typo.caption">328 avaliações</MudText>
+                            </div>
+                            
+                            <div class="d-flex flex-column">
+                                <div class="d-flex align-center mb-1">
+                                    <MudText Typo="Typo.caption" Class="mr-2">5</MudText>
+                                    <MudProgressLinear Value="80" Color="Color.Success" Class="mr-2" Style="width: 100px;" />
+                                    <MudText Typo="Typo.caption">80%</MudText>
+                                </div>
+                                <div class="d-flex align-center mb-1">
+                                    <MudText Typo="Typo.caption" Class="mr-2">4</MudText>
+                                    <MudProgressLinear Value="15" Color="Color.Info" Class="mr-2" Style="width: 100px;" />
+                                    <MudText Typo="Typo.caption">15%</MudText>
+                                </div>
+                                <div class="d-flex align-center mb-1">
+                                    <MudText Typo="Typo.caption" Class="mr-2">3</MudText>
+                                    <MudProgressLinear Value="3" Color="Color.Warning" Class="mr-2" Style="width: 100px;" />
+                                    <MudText Typo="Typo.caption">3%</MudText>
+                                </div>
+                                <div class="d-flex align-center mb-1">
+                                    <MudText Typo="Typo.caption" Class="mr-2">2</MudText>
+                                    <MudProgressLinear Value="1.5" Color="Color.Warning" Class="mr-2" Style="width: 100px;" />
+                                    <MudText Typo="Typo.caption">1.5%</MudText>
+                                </div>
+                                <div class="d-flex align-center">
+                                    <MudText Typo="Typo.caption" Class="mr-2">1</MudText>
+                                    <MudProgressLinear Value="0.5" Color="Color.Error" Class="mr-2" Style="width: 100px;" />
+                                    <MudText Typo="Typo.caption">0.5%</MudText>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Comentários (mockup) -->
+                        <MudDivider Class="my-3" />
+                        <MudText Typo="Typo.subtitle1" Class="mb-3">Comentários recentes</MudText>
+
+                        <MudList T="object">
+                            <MudListItem T="object">
+                                <div>
+                                    <div class="d-flex justify-space-between">
+                                        <MudText Typo="Typo.subtitle2">Maria Silva</MudText>
+                                        <MudText Typo="Typo.caption">Ontem</MudText>
+                                    </div>
+                                    <MudRating ReadOnly="true" SelectedValue="5" Size="Size.Small" />
+                                    <MudText Typo="Typo.body2">
+                                        Comida excelente, entrega rápida e tudo bem embalado!
+                                    </MudText>
+                                </div>
+                            </MudListItem>
+                            <MudDivider Class="my-2" />
+                            <MudListItem>
+                                <div>
+                                    <div class="d-flex justify-space-between">
+                                        <MudText Typo="Typo.subtitle2">João Oliveira</MudText>
+                                        <MudText Typo="Typo.caption">2 dias atrás</MudText>
+                                    </div>
+                                    <MudRating ReadOnly="true" SelectedValue="4" Size="Size.Small" />
+                                    <MudText Typo="Typo.body2">
+                                        Muito bom, mas demorou um pouco mais do que o esperado.
+                                    </MudText>
+                                </div>
+                            </MudListItem>
+                            <MudDivider Class="my-2" />
+                            <MudListItem>
+                                <div>
+                                    <div class="d-flex justify-space-between">
+                                        <MudText Typo="Typo.subtitle2">Ana Costa</MudText>
+                                        <MudText Typo="Typo.caption">3 dias atrás</MudText>
+                                    </div>
+                                    <MudRating ReadOnly="true" SelectedValue="5" Size="Size.Small" />
+                                    <MudText Typo="Typo.body2">
+                                        Adoro esse restaurante, sempre peço e nunca decepciona!
+                                    </MudText>
+                                </div>
+                            </MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
     }
     else
     {
-        <MudText Typo="Typo.body1" Align="Align.Center">Carregando informações...</MudText>
+        <MudAlert Severity="Severity.Error" Class="my-4">
+            Não foi possível carregar as informações do estabelecimento.
+            <MudButton Variant="Variant.Text" 
+                     Color="Color.Inherit" 
+                     OnClick="LoadEstabelecimento"
+                     Class="ml-2">
+                Tentar novamente
+            </MudButton>
+        </MudAlert>
     }
 </MudContainer>
 
 @code {
     [Parameter] public int Id { get; set; }
     private EstabelecimentoResponse? response;
+    private bool isLoading = true;
+    private string googleMapsUrl => response?.Estabelecimento != null
+        ? $"https://www.google.com/maps/search/?api=1&query={Uri.EscapeDataString($"{response.Estabelecimento.Endereco}, {response.Estabelecimento.Numero}")}"
+        : string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        response = await EstabelecimentoService.GetEstabelecimentoByIdAsync(Id);
+        await LoadEstabelecimento();
+    }
+
+    private async Task LoadEstabelecimento()
+    {
+        isLoading = true;
+        try
+        {
+            response = await EstabelecimentoService.GetEstabelecimentoByIdAsync(Id);
+            
+            // Check if establishment is open
+            if (response?.Estabelecimento != null)
+            {
+                // When this is implemented, uncomment and adjust as needed
+                // int diaSemanaInt = (int)DateTime.Now.DayOfWeek;
+                // string horaAtualString = DateTime.Now.ToString("HH:mm");
+                // response.Estabelecimento.EstaAberto = await HorarioFuncionamentoService.EstaAbertoAsync(
+                //    response.Estabelecimento.Id, diaSemanaInt, horaAtualString);
+                
+                // For now, we'll use mock data
+                response.Estabelecimento.EstaAberto = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao carregar estabelecimento: {ex.Message}");
+            response = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private string GetImageUrl(string? relativePath)
     {
         if (string.IsNullOrEmpty(relativePath))
         {
-            return "https://via.placeholder.com/150";
+            return "images/placeholder-restaurant.jpg";
         }
         return $"{ApiConstants.BaseUrlImagem}/{relativePath}";
+    }
+
+    private bool IsToday(string diaSemana)
+    {
+        // Convert the current day to the expected format in diaSemana
+        string today = DateTime.Now.DayOfWeek.ToString();
+        
+        // Map English day names to Portuguese if needed
+        Dictionary<string, string> dayMap = new Dictionary<string, string>() {
+            { "Sunday", "Domingo" },
+            { "Monday", "Segunda" },
+            { "Tuesday", "Terça" },
+            { "Wednesday", "Quarta" },
+            { "Thursday", "Quinta" },
+            { "Friday", "Sexta" },
+            { "Saturday", "Sábado" }
+        };
+        
+        if (dayMap.ContainsKey(today))
+        {
+            today = dayMap[today];
+        }
+        
+        // Check if the day name contains today's name (partial match)
+        return diaSemana.Contains(today, StringComparison.OrdinalIgnoreCase);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
